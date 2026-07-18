@@ -92,7 +92,7 @@ docs/ - Project documentation
 
 
 Project Team
-Anakwa-Acheampong Yaa Konadu - Software Integration and Deployment Lead 
+Anakwa-Acheampong Yaa Konadu  
 Kwegyireba Vida Aba
 Gamadi Annie Edina Sena
 Qua-Enoo Andrea
