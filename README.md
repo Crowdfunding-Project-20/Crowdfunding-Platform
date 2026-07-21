@@ -89,6 +89,15 @@ database/ - MySQL scripts and designs
 analytics/ - Reports and visualizations
 docs/ - Project documentation
 
+## Team Development Rules
+
+1. Do not push directly to `main`.
+2. Create a feature branch before coding:
+   `git checkout -b feature/your-feature`
+3. Pull the latest `main` before starting work.
+4. Commit related changes with clear commit messages.
+5. Push your feature branch and create a Pull Request.
+6. Merge only after review.
 
 
 Project Team
