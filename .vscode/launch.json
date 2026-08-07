@@ -1,0 +1,14 @@
+{
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Spring Boot-CrowdfundingApplication<nkoso>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.nkoso.crowdfunding.CrowdfundingApplication",
+      "projectName": "nkoso",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}

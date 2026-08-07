@@ -1,0 +1,12 @@
+com\nkoso\crowdfunding\repository\UserRepository.class
+com\nkoso\crowdfunding\repository\DonationRepository.class
+com\nkoso\crowdfunding\entity\PlatformSettings.class
+com\nkoso\crowdfunding\entity\User$Role.class
+com\nkoso\crowdfunding\entity\User.class
+com\nkoso\crowdfunding\repository\PlatformSettingsRepository.class
+com\nkoso\crowdfunding\entity\Donation.class
+com\nkoso\crowdfunding\config\SecurityConfig.class
+com\nkoso\crowdfunding\entity\Campaign$CampaignStatus.class
+com\nkoso\crowdfunding\repository\CampaignRepository.class
+com\nkoso\crowdfunding\CrowdfundingApplication.class
+com\nkoso\crowdfunding\entity\Campaign.class
