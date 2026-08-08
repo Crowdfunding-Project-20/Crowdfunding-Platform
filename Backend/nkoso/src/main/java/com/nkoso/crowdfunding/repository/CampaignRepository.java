@@ -11,4 +11,6 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
 
     List<Campaign> findByStatus(Campaign.CampaignStatus status);
 
+    List<Campaign> findTop5ByOrderByTotalCollectedDesc();
+
 }
