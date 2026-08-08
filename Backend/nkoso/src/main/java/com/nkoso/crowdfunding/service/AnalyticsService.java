@@ -14,18 +14,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-public class DashboardService {
+public class AnalyticsService {
 
     private final CampaignRepository campaignRepository;
     private final DonationRepository donationRepository;
     private final UserRepository userRepository;
 
-    public DashboardService(CampaignRepository campaignRepository,
+    public AnalyticsService(CampaignRepository campaignRepository,
                             DonationRepository donationRepository,
                             UserRepository userRepository) {
         this.campaignRepository = campaignRepository;
@@ -34,8 +35,8 @@ public class DashboardService {
     }
 
     @Transactional(readOnly = true)
-    public CreatorDashboardResponse getCreatorDashboard(User creator) {
-        List<Campaign> campaigns = campaignRepository.findByCreatorId(creator.getId());
+    public CreatorDashboardResponse getCreatorDashboard(Long userId) {
+        List<Campaign> campaigns = campaignRepository.findByCreatorId(userId);
 
         int numberOfCampaigns = campaigns.size();
         BigDecimal totalRaised = campaigns.stream()
@@ -72,13 +73,23 @@ public class DashboardService {
 
     @Transactional(readOnly = true)
     public AdminDashboardResponse getAdminDashboard() {
-        BigDecimal totalPlatformRaised = donationRepository.sumAllDonationAmounts();
-        BigDecimal totalFeesCollected = donationRepository.sumTotalFees();
-        long totalCampaigns = campaignRepository.count();
+        List<Campaign> allCampaigns = campaignRepository.findAll();
+        List<Donation> allDonations = donationRepository.findAll();
+
+        BigDecimal totalPlatformRaised = allCampaigns.stream()
+                .map(Campaign::getTotalCollected)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalFeesCollected = allDonations.stream()
+                .map(d -> d.getAmount().multiply(d.getFeePercentSnapshot()).divide(BigDecimal.valueOf(100)))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long totalCampaigns = allCampaigns.size();
         long totalUsers = userRepository.count();
 
-        List<Campaign> top5 = campaignRepository.findTop5ByOrderByTotalCollectedDesc();
-        List<TopCampaign> topCampaigns = top5.stream()
+        List<TopCampaign> topCampaigns = allCampaigns.stream()
+                .sorted(Comparator.comparing(Campaign::getTotalCollected).reversed())
+                .limit(5)
                 .map(c -> new TopCampaign(c.getId(), c.getTitle(), c.getTotalCollected()))
                 .toList();
 

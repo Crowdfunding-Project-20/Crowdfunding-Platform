@@ -1,7 +1,7 @@
 C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\config\SecurityConfig.java
+C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\controller\AnalyticsController.java
 C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\controller\AuthController.java
 C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\controller\CampaignController.java
-C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\controller\DashboardController.java
 C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\controller\DonationController.java
 C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\CrowdfundingApplication.java
 C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\dto\AdminDashboardResponse.java
@@ -29,7 +29,7 @@ C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\
 C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\repository\UserRepository.java
 C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\security\JwtAuthenticationFilter.java
 C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\security\JwtService.java
+C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\service\AnalyticsService.java
 C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\service\AuthService.java
 C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\service\CampaignService.java
-C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\service\DashboardService.java
 C:\Users\user\Documents\projects\Nkoso-crowdfunding\backend\nkoso\src\main\java\com\nkoso\crowdfunding\service\DonationService.java

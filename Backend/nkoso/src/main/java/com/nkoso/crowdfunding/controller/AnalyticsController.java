@@ -5,7 +5,7 @@ import com.nkoso.crowdfunding.dto.CreatorDashboardResponse;
 import com.nkoso.crowdfunding.entity.User;
 import com.nkoso.crowdfunding.exception.ResourceNotFoundException;
 import com.nkoso.crowdfunding.repository.UserRepository;
-import com.nkoso.crowdfunding.service.DashboardService;
+import com.nkoso.crowdfunding.service.AnalyticsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,28 +14,29 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/dashboard")
-public class DashboardController {
+@RequestMapping("/api/analytics")
+public class AnalyticsController {
 
-    private final DashboardService dashboardService;
+    private final AnalyticsService analyticsService;
     private final UserRepository userRepository;
 
-    public DashboardController(DashboardService dashboardService,
+    public AnalyticsController(AnalyticsService analyticsService,
                                UserRepository userRepository) {
-        this.dashboardService = dashboardService;
+        this.analyticsService = analyticsService;
         this.userRepository = userRepository;
     }
 
     @GetMapping("/creator")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<CreatorDashboardResponse> getCreatorDashboard() {
-        return ResponseEntity.ok(dashboardService.getCreatorDashboard(getCurrentUser()));
+        User currentUser = getCurrentUser();
+        return ResponseEntity.ok(analyticsService.getCreatorDashboard(currentUser.getId()));
     }
 
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AdminDashboardResponse> getAdminDashboard() {
-        return ResponseEntity.ok(dashboardService.getAdminDashboard());
+        return ResponseEntity.ok(analyticsService.getAdminDashboard());
     }
 
     private User getCurrentUser() {
