@@ -1,9 +1,17 @@
 package com.nkoso.crowdfunding.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Authentication response with JWT token")
 public class AuthResponse {
 
+    @Schema(description = "JWT token for authenticated requests", example = "eyJhbGciOiJIUzI1NiJ9...")
     private String token;
+
+    @Schema(description = "Authenticated user's email", example = "user@example.com")
     private String email;
+
+    @Schema(description = "User role (USER or ADMIN)", example = "USER")
     private String role;
 
     public AuthResponse() {

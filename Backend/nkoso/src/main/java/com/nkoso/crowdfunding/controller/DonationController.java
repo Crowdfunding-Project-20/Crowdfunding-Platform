@@ -6,6 +6,8 @@ import com.nkoso.crowdfunding.entity.User;
 import com.nkoso.crowdfunding.exception.ResourceNotFoundException;
 import com.nkoso.crowdfunding.repository.UserRepository;
 import com.nkoso.crowdfunding.service.DonationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/donations")
+@Tag(name = "Donations", description = "Fund campaigns and view your donation history")
 public class DonationController {
 
     private final DonationService donationService;
@@ -32,6 +35,7 @@ public class DonationController {
     }
 
     @PostMapping
+    @Operation(summary = "Fund a campaign", description = "Make a donation to a campaign (authenticated users). Simulated payment — always succeeds.")
     public ResponseEntity<DonationResponse> fundCampaign(
             @Valid @RequestBody DonationRequest request) {
         DonationResponse response = donationService.createDonation(request, getCurrentUser());
@@ -39,6 +43,7 @@ public class DonationController {
     }
 
     @GetMapping("/my")
+    @Operation(summary = "My donation history", description = "Get all donations made by the current user.")
     public ResponseEntity<List<DonationResponse>> getMyDonations() {
         return ResponseEntity.ok(donationService.getDonationsByBacker(getCurrentUser()));
     }
