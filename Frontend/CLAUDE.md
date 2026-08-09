@@ -55,3 +55,9 @@ Do not invent additional pages/routes beyond what's listed here without checking
 - Keep components close to the page that uses them unless something is genuinely shared across 2+ pages (e.g. a `CampaignCard`, a `StatCard`) — don't prematurely build a shared component library.
 - Loading, error, and empty states are expected on every data-fetching page, not optional polish — treat "what does this look like with zero campaigns / a failed fetch / while loading" as part of building the page, not an afterthought.
 - If a request implies scope beyond the routes listed above, or reintroducing something explicitly descoped (payment processor UI, social login, TypeScript, etc.), flag it rather than silently implementing it.
+
+## Design Direction
+@DESIGN.md
+
+## API Integration
+@apis.json

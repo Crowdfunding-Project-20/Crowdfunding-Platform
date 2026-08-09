@@ -7,9 +7,13 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  /* Body font — Epilogue first, Inter and the system stack as fallbacks
+     (Clash Display and Epilogue are self-hosted via next/font, so the
+     fallbacks only ever matter if those @font-face rules fail). */
+  --font-sans: var(--font-epilogue), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  /* Headings — Clash Display on the --font-heading token used by card/dialog titles. */
+  --font-heading: var(--font-clash-display), var(--font-epilogue), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -127,4 +131,14 @@
   html {
     @apply font-sans;
   }
+  /* Headings use the display face (Clash Display) — see DESIGN.md */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+/* Glassmorphism surface — semi-transparent fill + backdrop blur + hairline border.
+   Used on the login/signup cards over the photographic background. */
+@utility bg-glass {
+  @apply bg-white/20 dark:bg-black/30 backdrop-blur-xl border border-white/30 dark:border-white/10;
 }
