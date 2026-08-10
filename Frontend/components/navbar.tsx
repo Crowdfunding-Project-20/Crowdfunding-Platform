@@ -32,9 +32,7 @@ import {
 export function Navbar() {
   const { user, loading, logout } = useAuth();
 
-  const analyticsHref =
-    user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard/creator";
-
+  const analyticsHref = "/analytics";
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
       <nav className="relative mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
