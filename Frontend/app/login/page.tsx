@@ -24,7 +24,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { user, loading, login } = useAuth();
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,14 +45,14 @@ export default function LoginPage() {
     setError(null);
 
     // Basic UX validation — the backend is the real authority
-    if (!email.trim() || !password) {
-      setError("Enter your email and password to continue.");
+    if (!identifier.trim() || !password) {
+      setError("Enter your email/username and password to continue.");
       return;
     }
 
     setSubmitting(true);
     try {
-      await login(email.trim(), password);
+      await login(identifier.trim(), password);
       router.push("/");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong. Try again.");
@@ -67,29 +67,29 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle className="text-foreground text-xl">Sign in to your account</CardTitle>
           <CardDescription>
-            Enter your email and password to continue
+            Enter your email or username and password to continue
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="identifier">Email or username</Label>
               <div className="relative">
                 <Envelope
                   className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
                   aria-hidden="true"
                 />
                 <Input
-                  id="email"
-                  type="email"
+                  id="identifier"
+                  type="text"
                   inputMode="email"
-                  autoComplete="email"
+                  autoComplete="username"
                   autoFocus
-                  placeholder="you@example.com"
+                  placeholder="you@example.com or your_username"
                   className="pl-10"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                 />
               </div>
             </div>

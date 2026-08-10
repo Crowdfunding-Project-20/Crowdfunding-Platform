@@ -52,6 +52,11 @@ public class CampaignService {
     public CampaignResponse getCampaignById(Long id) {
         Campaign campaign = campaignRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Campaign not found with id: " + id));
+
+        if (campaign.getStatus() == Campaign.CampaignStatus.DELETED) {
+            throw new ResourceNotFoundException("Campaign not found with id: " + id);
+        }
+
         return mapToResponse(campaign);
     }
 
@@ -68,7 +73,7 @@ public class CampaignService {
         Campaign campaign = campaignRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Campaign not found with id: " + id));
 
-        if (!campaign.getCreator().getEmail().equals(currentUser.getEmail())) {
+        if (!isOwnerOrAdmin(campaign, currentUser)) {
             throw new UnauthorizedException("You are not the creator of this campaign");
         }
 
@@ -98,6 +103,33 @@ public class CampaignService {
         }
 
         campaign.setTotalWithdrawn(campaign.getTotalWithdrawn().add(amount));
+        campaign = campaignRepository.save(campaign);
+
+        return mapToResponse(campaign);
+    }
+
+    private boolean isOwnerOrAdmin(Campaign campaign, User currentUser) {
+        return campaign.getCreator().getEmail().equals(currentUser.getEmail())
+                || currentUser.getRole() == User.Role.ADMIN;
+    }
+
+    @Transactional
+    public CampaignResponse deleteCampaign(Long id, User currentUser) {
+        Campaign campaign = campaignRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Campaign not found with id: " + id));
+
+        if (!isOwnerOrAdmin(campaign, currentUser)) {
+            throw new UnauthorizedException("You are not the creator of this campaign");
+        }
+
+        BigDecimal availableBalance = campaign.getTotalCollected().subtract(campaign.getTotalWithdrawn());
+
+        if (availableBalance.compareTo(BigDecimal.ZERO) > 0) {
+            throw new BadRequestException(
+                    "You must withdraw all funds before deleting the campaign. Available balance: " + availableBalance);
+        }
+
+        campaign.setStatus(Campaign.CampaignStatus.DELETED);
         campaign = campaignRepository.save(campaign);
 
         return mapToResponse(campaign);

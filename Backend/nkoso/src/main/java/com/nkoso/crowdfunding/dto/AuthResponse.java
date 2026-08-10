@@ -11,15 +11,19 @@ public class AuthResponse {
     @Schema(description = "Authenticated user's email", example = "user@example.com")
     private String email;
 
+    @Schema(description = "Authenticated user's username", example = "john_doe")
+    private String username;
+
     @Schema(description = "User role (USER or ADMIN)", example = "USER")
     private String role;
 
     public AuthResponse() {
     }
 
-    public AuthResponse(String token, String email, String role) {
+    public AuthResponse(String token, String email, String username, String role) {
         this.token = token;
         this.email = email;
+        this.username = username;
         this.role = role;
     }
 
@@ -37,6 +41,14 @@ public class AuthResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getRole() {

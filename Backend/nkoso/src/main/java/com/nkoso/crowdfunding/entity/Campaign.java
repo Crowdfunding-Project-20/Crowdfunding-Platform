@@ -57,7 +57,7 @@ public class Campaign {
     public Campaign() {}
 
     public enum CampaignStatus {
-        ACTIVE, CLOSED
+        ACTIVE, CLOSED, DELETED
     }
 
     public Long getId() { return id; }

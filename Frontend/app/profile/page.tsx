@@ -48,8 +48,13 @@ export default function ProfilePage() {
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-base font-medium text-foreground">
-              {user.email}
+              {user.username || user.email}
             </span>
+            {user.username && (
+              <span className="text-sm text-muted-foreground">
+                {user.email}
+              </span>
+            )}
             <span className="inline-flex w-fit items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
               {user.role === "ADMIN" ? "Admin" : "Member"}
             </span>

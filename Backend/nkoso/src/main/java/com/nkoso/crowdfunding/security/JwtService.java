@@ -32,6 +32,7 @@ public class JwtService {
         return Jwts.builder()
                 .claims()
                     .subject(user.getEmail())
+                    .add("username", user.getUsername())
                     .add("role", user.getRole().name())
                     .and()
                 .issuedAt(now)
@@ -40,8 +41,13 @@ public class JwtService {
                 .compact();
     }
 
-    public String extractUsername(String token) {
+    // The subject claim is the email — the canonical, immutable identifier.
+    public String extractSubject(String token) {
         return extractClaims(token).getSubject();
+    }
+
+    public String extractUsername(String token) {
+        return extractClaims(token).get("username", String.class);
     }
 
     public String extractRole(String token) {

@@ -1,16 +1,14 @@
 package com.nkoso.crowdfunding.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 @Schema(description = "Login request payload")
 public class LoginRequest {
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email must be valid")
-    @Schema(description = "User email address", example = "user@example.com")
-    private String email;
+    @NotBlank(message = "Email or username is required")
+    @Schema(description = "User email address or username", example = "user@example.com")
+    private String identifier;
 
     @NotBlank(message = "Password is required")
     @Schema(description = "User password", example = "password123")
@@ -19,17 +17,17 @@ public class LoginRequest {
     public LoginRequest() {
     }
 
-    public LoginRequest(String email, String password) {
-        this.email = email;
+    public LoginRequest(String identifier, String password) {
+        this.identifier = identifier;
         this.password = password;
     }
 
-    public String getEmail() {
-        return email;
+    public String getIdentifier() {
+        return identifier;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
     }
 
     public String getPassword() {

@@ -19,6 +19,7 @@ com\nkoso\crowdfunding\dto\DonationResponse.class
 com\nkoso\crowdfunding\controller\DonationController.class
 com\nkoso\crowdfunding\exception\UnauthorizedException.class
 com\nkoso\crowdfunding\repository\PlatformSettingsRepository.class
+com\nkoso\crowdfunding\config\UserDataInitializer.class
 com\nkoso\crowdfunding\exception\BadRequestException.class
 com\nkoso\crowdfunding\entity\Donation.class
 com\nkoso\crowdfunding\dto\AuthResponse.class

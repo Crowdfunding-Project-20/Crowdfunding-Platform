@@ -3,7 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Envelope, Lock, Eye, EyeSlash, ArrowRight } from "@phosphor-icons/react";
+import { Envelope, Lock, Eye, EyeSlash, ArrowRight, User as UserIcon } from "@phosphor-icons/react";
 
 import {
   Card,
@@ -22,13 +22,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AuthSplitShell } from "@/app/(auth)/AuthSplitShell";
 
 
-type AuthResponse = { token: string; email: string; role: "USER" | "ADMIN" };
+type AuthResponse = { token: string; email: string; username: string; role: "USER" | "ADMIN" };
+
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
 
 export default function SignupPage() {
   const router = useRouter();
   const { user, loading, setSession } = useAuth();
 
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -53,6 +56,10 @@ export default function SignupPage() {
       setError("Enter a valid email address.");
       return;
     }
+    if (!USERNAME_RE.test(username.trim())) {
+      setError("Username must be 3-30 characters: letters, numbers, or underscores.");
+      return;
+    }
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
       return;
@@ -68,6 +75,7 @@ export default function SignupPage() {
       // directly via setSession so the rest of the app sees the user immediately.
       const data = await api.post<AuthResponse>("/api/auth/register", {
         email: email.trim(),
+        username: username.trim(),
         password,
       });
       setSession(data);
@@ -108,6 +116,25 @@ export default function SignupPage() {
                   className="pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="username">Username</Label>
+              <div className="relative">
+                <UserIcon
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="username"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="your_username"
+                  className="pl-10"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
             </div>

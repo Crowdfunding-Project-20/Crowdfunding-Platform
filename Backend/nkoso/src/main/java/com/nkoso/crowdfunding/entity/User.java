@@ -14,6 +14,11 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    // nullable so existing rows survive the ddl-auto=update migration; the
+    // RegisterRequest DTO enforces it for all new signups going forward.
+    @Column(unique = true, nullable = true)
+    private String username;
+
     @Column(nullable = false)
     private String password;
 
@@ -37,6 +42,13 @@ public class User {
         this.role = role;
     }
 
+    public User(String email, String username, String password, Role role) {
+        this.email = email;
+        this.username = username;
+        this.password = password;
+        this.role = role;
+    }
+
     public enum Role {
         USER, ADMIN
     }
@@ -46,6 +58,9 @@ public class User {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }

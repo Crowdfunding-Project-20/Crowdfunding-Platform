@@ -86,12 +86,21 @@ export function Navbar() {
                 )}
               >
                 <UserCircle className="size-5" />
-                <span className="max-w-40 truncate">Welcome, {user.email}</span>
+                <span className="max-w-40 truncate">
+                  {user.username ? `Welcome, ${user.username}` : `Welcome, ${user.email}`}
+                </span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>
-                    Signed in as {user.email}
+                    <div className="flex flex-col py-0.5">
+                      <span className="font-medium">
+                        Signed in as {user.username || user.email}
+                      </span>
+                      {user.username && (
+                        <span className="text-xs text-muted-foreground">{user.email}</span>
+                      )}
+                    </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem render={<Link href="/profile" />}>

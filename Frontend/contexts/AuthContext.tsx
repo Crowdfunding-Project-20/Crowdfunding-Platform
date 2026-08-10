@@ -17,16 +17,18 @@ type Role = "USER" | "ADMIN";
 
 type User = {
   email: string;
+  username: string;
   role: Role;
 };
 
-type AuthSession = { token: string; email: string; role: Role };
+type AuthSession = { token: string; email: string; username: string; role: Role };
 
 type AuthContextValue = {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** identifier may be an email or a username */
+  login: (identifier: string, password: string) => Promise<void>;
   /** Persist a session obtained outside login() (e.g. from register). */
   setSession: (session: AuthSession) => void;
   logout: () => void;
@@ -68,9 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (payload) {
           // Prefer the backend's AuthResponse shape; fall back to JWT claims
           const email = (payload.email as string) || (payload.sub as string) || "";
+          const username = (payload.username as string) || "";
           const role = (payload.role as Role) || "USER";
           if (email) {
-            setUser({ email, role });
+            setUser({ email, username, role });
             setToken(stored);
           } else {
             // No usable identity — drop it
@@ -93,12 +96,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(TOKEN_KEY, session.token);
     }
     setToken(session.token);
-    setUser({ email: session.email, role: session.role });
+    setUser({ email: session.email, username: session.username, role: session.role });
   }, []);
 
   const login = useCallback(
-    async (email: string, password: string) => {
-      const data = await api.post<AuthSession>("/api/auth/login", { email, password });
+    async (identifier: string, password: string) => {
+      const data = await api.post<AuthSession>("/api/auth/login", { identifier, password });
       setSession(data);
     },
     [setSession],
