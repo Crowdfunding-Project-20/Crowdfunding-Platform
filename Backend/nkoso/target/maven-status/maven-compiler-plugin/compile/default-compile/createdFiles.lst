@@ -6,6 +6,7 @@ com\nkoso\crowdfunding\entity\PlatformSettings.class
 com\nkoso\crowdfunding\entity\User$Role.class
 com\nkoso\crowdfunding\exception\ResourceNotFoundException.class
 com\nkoso\crowdfunding\dto\LoginRequest.class
+com\nkoso\crowdfunding\service\ImageUploadService.class
 com\nkoso\crowdfunding\dto\CampaignResponse.class
 com\nkoso\crowdfunding\security\JwtService.class
 com\nkoso\crowdfunding\controller\CampaignController.class
@@ -14,6 +15,7 @@ com\nkoso\crowdfunding\exception\GlobalExceptionHandler.class
 com\nkoso\crowdfunding\controller\AuthController.class
 com\nkoso\crowdfunding\dto\WithdrawRequest.class
 com\nkoso\crowdfunding\entity\User.class
+com\nkoso\crowdfunding\config\CloudinaryConfig.class
 com\nkoso\crowdfunding\controller\AnalyticsController.class
 com\nkoso\crowdfunding\dto\DonationResponse.class
 com\nkoso\crowdfunding\controller\DonationController.class
@@ -22,6 +24,8 @@ com\nkoso\crowdfunding\repository\PlatformSettingsRepository.class
 com\nkoso\crowdfunding\config\UserDataInitializer.class
 com\nkoso\crowdfunding\exception\BadRequestException.class
 com\nkoso\crowdfunding\entity\Donation.class
+com\nkoso\crowdfunding\config\OpenApiConfig.class
+com\nkoso\crowdfunding\controller\ImageUploadController.class
 com\nkoso\crowdfunding\dto\AuthResponse.class
 com\nkoso\crowdfunding\config\SecurityConfig.class
 com\nkoso\crowdfunding\entity\Campaign$CampaignStatus.class
@@ -33,6 +37,7 @@ com\nkoso\crowdfunding\entity\Campaign.class
 com\nkoso\crowdfunding\dto\AdminDashboardResponse$TopCampaign.class
 com\nkoso\crowdfunding\service\AuthService.class
 com\nkoso\crowdfunding\dto\RegisterRequest.class
+com\nkoso\crowdfunding\entity\Campaign$CampaignCategory.class
 com\nkoso\crowdfunding\dto\DonationRequest.class
 com\nkoso\crowdfunding\dto\CampaignRequest.class
 com\nkoso\crowdfunding\security\JwtAuthenticationFilter.class

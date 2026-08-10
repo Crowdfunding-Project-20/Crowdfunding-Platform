@@ -5,11 +5,12 @@ import Image from "next/image";
 import { Heart } from "@phosphor-icons/react";
 
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 /**
  * CampaignCard — a reusable campaign tile.
  *
- * Used by the homepage discover grid (and, later, the /campaigns browse page).
+ * Used by the homepage discover grid and the browse page.
  * The whole card is a link to the campaign's detail page, `/campaigns/{id}`.
  *
  * `featured` tweaks the layout for the large bento cell: a taller image area
@@ -28,6 +29,38 @@ export type Campaign = {
   imageUrl?: string | null;
   goalAmount: number;
   totalCollected: number;
+  totalWithdrawn?: number;
+  availableBalance?: number;
+  status?: string;
+  creatorEmail?: string;
+  category?: string;
+  createdAt?: string;
+};
+
+export const CAMPAIGN_CATEGORIES = [
+  "EDUCATION",
+  "HEALTH",
+  "ENVIRONMENT",
+  "BUSINESS",
+  "CHARITY",
+  "ARTS",
+  "SPORTS",
+  "TECHNOLOGY",
+  "OTHER",
+] as const;
+
+export type CampaignCategory = (typeof CAMPAIGN_CATEGORIES)[number];
+
+export const CATEGORY_LABELS: Record<string, string> = {
+  EDUCATION: "Education",
+  HEALTH: "Health",
+  ENVIRONMENT: "Environment",
+  BUSINESS: "Business",
+  CHARITY: "Charity",
+  ARTS: "Arts",
+  SPORTS: "Sports",
+  TECHNOLOGY: "Technology",
+  OTHER: "Other",
 };
 
 function formatMoney(amount: number) {
@@ -44,7 +77,7 @@ export function CampaignCard({
   featured?: boolean;
   className?: string;
 }) {
-  const { id, title, description, imageUrl, goalAmount, totalCollected } =
+  const { id, title, description, imageUrl, goalAmount, totalCollected, category } =
     campaign;
   // Avoid divide-by-zero on a malformed goal; clamp to 0–100.
   const goal = goalAmount > 0 ? goalAmount : 1;
@@ -78,6 +111,11 @@ export function CampaignCard({
         )}
       </div>
       <div className="flex flex-col gap-1.5 p-3 sm:p-4">
+        {category && (
+          <Badge variant="secondary" className="w-fit">
+            {CATEGORY_LABELS[category] || category}
+          </Badge>
+        )}
         <h3
           className={cn(
             "line-clamp-2 font-medium text-foreground",

@@ -5,6 +5,18 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowRight, UploadSimple, X } from "@phosphor-icons/react";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  CAMPAIGN_CATEGORIES,
+  CATEGORY_LABELS,
+} from "@/components/campaign-card";
+
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -41,6 +53,7 @@ export default function CreateCampaignPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [goalAmount, setGoalAmount] = useState("");
+  const [category, setCategory] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -106,6 +119,10 @@ export default function CreateCampaignPage() {
       setError("Add a cover image for your fundraiser.");
       return;
     }
+    if (!category) {
+      setError("Choose a category for your fundraiser.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -120,6 +137,7 @@ export default function CreateCampaignPage() {
         description: description.trim(),
         goalAmount: goal,
         imageUrl: url,
+        category,
       });
 
       router.push(`/campaigns/${campaign.id}`);
@@ -204,6 +222,22 @@ export default function CreateCampaignPage() {
                   disabled={submitting}
                 />
               </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="category">Category</Label>
+              <Select value={category} onValueChange={(value) => setCategory(value ?? "")}>
+                <SelectTrigger id="category" className="w-full">
+                  <SelectValue placeholder="Choose a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CAMPAIGN_CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {CATEGORY_LABELS[c]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Image upload */}

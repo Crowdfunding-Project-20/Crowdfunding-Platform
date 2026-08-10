@@ -30,6 +30,7 @@ public class CampaignService {
         campaign.setDescription(request.getDescription());
         campaign.setGoalAmount(request.getGoalAmount());
         campaign.setImageUrl(request.getImageUrl());
+        campaign.setCategory(request.getCategory());
         campaign.setStatus(Campaign.CampaignStatus.ACTIVE);
         campaign.setTotalCollected(BigDecimal.ZERO);
         campaign.setTotalWithdrawn(BigDecimal.ZERO);
@@ -81,6 +82,7 @@ public class CampaignService {
         campaign.setDescription(request.getDescription());
         campaign.setGoalAmount(request.getGoalAmount());
         campaign.setImageUrl(request.getImageUrl());
+        campaign.setCategory(request.getCategory());
 
         campaign = campaignRepository.save(campaign);
 
@@ -142,6 +144,7 @@ public class CampaignService {
                 campaign.getDescription(),
                 campaign.getGoalAmount(),
                 campaign.getImageUrl(),
+                campaign.getCategory() != null ? campaign.getCategory().name() : null,
                 campaign.getStatus().name(),
                 campaign.getTotalCollected(),
                 campaign.getTotalWithdrawn(),

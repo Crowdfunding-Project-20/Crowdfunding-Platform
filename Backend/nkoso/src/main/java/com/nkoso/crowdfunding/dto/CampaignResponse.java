@@ -10,6 +10,7 @@ public class CampaignResponse {
     private String description;
     private BigDecimal goalAmount;
     private String imageUrl;
+    private String category;
     private String status;
     private BigDecimal totalCollected;
     private BigDecimal totalWithdrawn;
@@ -21,7 +22,7 @@ public class CampaignResponse {
     }
 
     public CampaignResponse(Long id, String title, String description, BigDecimal goalAmount,
-                            String imageUrl, String status, BigDecimal totalCollected,
+                            String imageUrl, String category, String status, BigDecimal totalCollected,
                             BigDecimal totalWithdrawn, BigDecimal availableBalance,
                             String creatorEmail, LocalDateTime createdAt) {
         this.id = id;
@@ -29,6 +30,7 @@ public class CampaignResponse {
         this.description = description;
         this.goalAmount = goalAmount;
         this.imageUrl = imageUrl;
+        this.category = category;
         this.status = status;
         this.totalCollected = totalCollected;
         this.totalWithdrawn = totalWithdrawn;
@@ -75,6 +77,14 @@ public class CampaignResponse {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public String getStatus() {

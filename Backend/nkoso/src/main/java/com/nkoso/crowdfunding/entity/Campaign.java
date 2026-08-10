@@ -24,6 +24,10 @@ public class Campaign {
     private String imageUrl;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = true, length = 30)
+    private CampaignCategory category;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private CampaignStatus status = CampaignStatus.ACTIVE;
 
@@ -56,6 +60,11 @@ public class Campaign {
 
     public Campaign() {}
 
+    public enum CampaignCategory {
+        EDUCATION, HEALTH, ENVIRONMENT, BUSINESS, CHARITY,
+        ARTS, SPORTS, TECHNOLOGY, OTHER
+    }
+
     public enum CampaignStatus {
         ACTIVE, CLOSED, DELETED
     }
@@ -74,6 +83,9 @@ public class Campaign {
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public CampaignCategory getCategory() { return category; }
+    public void setCategory(CampaignCategory category) { this.category = category; }
 
     public CampaignStatus getStatus() { return status; }
     public void setStatus(CampaignStatus status) { this.status = status; }
