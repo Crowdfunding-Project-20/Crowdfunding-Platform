@@ -47,10 +47,18 @@ export const metadata: Metadata = {
   description: "Crowdfunding for community projects",
 };
 
+// Applies the stored theme before first paint, so a dark-mode user never sees
+// a flash of the cream background. Must stay in sync with THEME_KEY in
+// components/theme-toggle.tsx.
+const themeScript = `try{var t=localStorage.getItem('nkoso_theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      // The theme class is set by the script below before React hydrates, so
+      // <html>'s className legitimately differs from the server's.
+      suppressHydrationWarning
       className={cn(
         "h-full",
         "antialiased",
@@ -62,6 +70,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         epilogue.variable,
       )}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <Navbar />

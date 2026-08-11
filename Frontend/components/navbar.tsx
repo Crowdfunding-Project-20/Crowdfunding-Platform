@@ -6,6 +6,7 @@ import { Heart, SignOut, UserCircle } from "@phosphor-icons/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,15 +26,12 @@ import {
  *   regardless of how wide the left/right content gets)
  * - Right: "Sign up" when logged out, a welcome dropdown when logged in
  *
- * Analytics points admins at /dashboard/admin and everyone else at
- * /dashboard/creator.
+ * Analytics points at /dashboard, which redirects to the right tab for the
+ * user's role.
  */
 
 export function Navbar() {
   const { user, loading, logout } = useAuth();
-
-  const analyticsHref =
-    user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard/creator";
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
@@ -53,7 +51,7 @@ export function Navbar() {
             Raise funds
           </Link>
           <Link
-            href={analyticsHref}
+            href="/dashboard"
             className="rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             Analytics
@@ -72,8 +70,9 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Right — auth */}
-        <div className="flex min-w-0 items-center justify-end">
+        {/* Right — theme + auth */}
+        <div className="flex min-w-0 items-center justify-end gap-1">
+          <ThemeToggle />
           {loading ? (
             // Reserve space while the session hydrates so the row doesn't jump
             <div className="h-9 w-24" aria-hidden="true" />

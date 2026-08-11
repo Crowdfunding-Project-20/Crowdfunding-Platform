@@ -146,7 +146,10 @@ export default function BrowseCampaignsPage() {
               {filteredCampaigns.length}{" "}
               {filteredCampaigns.length === 1 ? "fundraiser" : "fundraisers"}
             </p>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* auto-rows gives each card a definite height — CampaignCard's
+                image area fills leftover space, so it collapses to 0px in an
+                auto-height row. */}
+            <div className="grid auto-rows-[360px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filteredCampaigns.map((campaign) => (
                 <CampaignCard key={campaign.id} campaign={campaign} />
               ))}
@@ -160,12 +163,9 @@ export default function BrowseCampaignsPage() {
 
 function LoadingSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid auto-rows-[360px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="aspect-[4/5] animate-pulse rounded-xl bg-muted"
-        />
+        <div key={i} className="animate-pulse rounded-xl bg-muted" />
       ))}
     </div>
   );

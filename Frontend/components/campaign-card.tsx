@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Heart } from "@phosphor-icons/react";
 
-import { cn } from "@/lib/utils";
+import { cn, formatMoney } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 /**
@@ -16,6 +16,12 @@ import { Badge } from "@/components/ui/badge";
  * `featured` tweaks the layout for the large bento cell: a taller image area
  * and the description shown. Plain cards omit the description to stay
  * compact in a 1×1 cell.
+ *
+ * The image area fills whatever card height is left over (`flex-1` + next/image
+ * `fill`, which is absolutely positioned and so has no intrinsic height). The
+ * parent grid must therefore give the card a definite height — e.g.
+ * `auto-rows-[360px]`. In an auto-height row the image collapses to 0px and
+ * disappears.
  *
  * Images render with `unoptimized` so any external imageUrl host
  * (Cloudinary, etc.) works without configuring next/image remotePatterns —
@@ -62,11 +68,6 @@ export const CATEGORY_LABELS: Record<string, string> = {
   TECHNOLOGY: "Technology",
   OTHER: "Other",
 };
-
-function formatMoney(amount: number) {
-  if (amount == null || Number.isNaN(amount)) return "$0";
-  return "$" + Math.round(amount).toLocaleString();
-}
 
 export function CampaignCard({
   campaign,
