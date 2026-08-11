@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FundCampaignModal } from "./fund-campaign-modal";
+import { EditCampaignModal } from "./edit-campaign-modal";
 
 /**
  * Campaign detail page — `/campaigns/[id]`.
@@ -42,6 +43,7 @@ export default function CampaignDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [fundOpen, setFundOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const campaignId = Number(id);
 
@@ -79,8 +81,9 @@ export default function CampaignDetailPage({
     setFundOpen(true);
   }
 
-  // Refresh the campaign's figures (totalCollected, %-funded) after a donation.
-  const handleDonated = useCallback(async () => {
+  // Refresh the campaign after a donation or an edit (totalCollected, title,
+  // cover, %-funded...) so the page reflects the latest data immediately.
+  const refreshCampaign = useCallback(async () => {
     const data = await api.get<Campaign>(`/api/campaigns/${id}`);
     setCampaign(data);
   }, [id]);
@@ -215,7 +218,7 @@ export default function CampaignDetailPage({
                 open={fundOpen}
                 onOpenChange={setFundOpen}
                 campaign={campaign}
-                onDonated={handleDonated}
+                onDonated={refreshCampaign}
               />
 
               {!user && (
@@ -232,17 +235,24 @@ export default function CampaignDetailPage({
                 <CardTitle>Creator actions</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
-                <Button variant="outline" className="w-full rounded-3xl" render={<a href={`/campaigns/${campaign.id}/edit`} />}>
+                <Button
+                  variant="outline"
+                  className="w-full rounded-3xl"
+                  onClick={() => setEditOpen(true)}
+                >
                   Edit fundraiser
                 </Button>
+                <EditCampaignModal
+                  key={editOpen ? "open" : "closed"}
+                  open={editOpen}
+                  onOpenChange={setEditOpen}
+                  campaign={campaign}
+                  onSaved={refreshCampaign}
+                />
                 <WithdrawForm
                   campaignId={campaignId}
                   available={campaign.availableBalance ?? 0}
-                  onSuccess={() =>
-                    api
-                      .get<Campaign>(`/api/campaigns/${campaignId}`)
-                      .then((data) => setCampaign(data))
-                  }
+                  onSuccess={refreshCampaign}
                 />
               </CardContent>
             </Card>

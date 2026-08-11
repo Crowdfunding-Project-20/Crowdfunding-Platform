@@ -53,9 +53,9 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-2xl flex-col gap-8 px-6 py-12">
+    <main className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-4xl flex-col gap-8 px-6 py-12">
       <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground">
+        <h1 className="font-heading text-3xl font-medium tracking-tight text-foreground">
           Your profile
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -63,9 +63,9 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-4">
-          <Avatar size="lg" className="size-14">
+      <Card className="shadow-none">
+        <CardContent className="flex items-center gap-4">
+          <Avatar size="lg" className="size-16">
             <AvatarFallback className="bg-primary/10 text-lg font-medium text-primary">
               {initial}
             </AvatarFallback>
@@ -88,8 +88,8 @@ export default function ProfilePage() {
               </span>
             )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <AccountDetailsForm
         email={current.email}
@@ -113,6 +113,7 @@ function AccountDetailsForm({
 }) {
   const [emailField, setEmailField] = useState(email);
   const [usernameField, setUsernameField] = useState(username);
+  const [errorField, setErrorField] = useState<"email" | "username" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -120,6 +121,7 @@ function AccountDetailsForm({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setErrorField(null);
     setSuccess(false);
 
     const trimmedEmail = emailField.trim();
@@ -127,10 +129,12 @@ function AccountDetailsForm({
 
     // UX-only checks — the backend owns the real rules.
     if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      setErrorField("email");
       setError("Enter a valid email address.");
       return;
     }
     if (!USERNAME_RE.test(trimmedUsername)) {
+      setErrorField("username");
       setError("Username must be 3-30 characters: letters, numbers, or underscores.");
       return;
     }
@@ -158,66 +162,76 @@ function AccountDetailsForm({
     <Card className="shadow-none">
       <CardHeader>
         <CardTitle className="text-foreground">Account details</CardTitle>
-        <CardDescription>Update your email or username.</CardDescription>
+        <CardDescription>
+          Update your email or username. You&apos;ll stay signed in after saving.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="profile-email">Email</Label>
-            <div className="relative">
-              <Envelope
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <Input
-                id="profile-email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@example.com"
-                className="pl-10"
-                value={emailField}
-                onChange={(e) => {
-                  setEmailField(e.target.value);
-                  setError(null);
-                  setSuccess(false);
-                }}
-              />
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="profile-email">Email</Label>
+              <div className="relative">
+                <Envelope
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="profile-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  aria-describedby={errorField === "email" ? "account-error" : undefined}
+                  className="pl-10"
+                  value={emailField}
+                  onChange={(e) => {
+                    setEmailField(e.target.value);
+                    setError(null);
+                    setErrorField(null);
+                    setSuccess(false);
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="profile-username">Username</Label>
+              <div className="relative">
+                <UserIcon
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="profile-username"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="your_username"
+                  aria-describedby={errorField === "username" ? "account-error" : undefined}
+                  className="pl-10"
+                  value={usernameField}
+                  onChange={(e) => {
+                    setUsernameField(e.target.value);
+                    setError(null);
+                    setErrorField(null);
+                    setSuccess(false);
+                  }}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="profile-username">Username</Label>
-            <div className="relative">
-              <UserIcon
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <Input
-                id="profile-username"
-                type="text"
-                autoComplete="username"
-                placeholder="your_username"
-                className="pl-10"
-                value={usernameField}
-                onChange={(e) => {
-                  setUsernameField(e.target.value);
-                  setError(null);
-                  setSuccess(false);
-                }}
-              />
-            </div>
+          {/* Fixed-height live region so feedback never shoves the button down. */}
+          <div aria-live="polite" className="min-h-5 text-sm">
+            {error ? (
+              <p id="account-error" className="text-destructive" role="alert">
+                {error}
+              </p>
+            ) : success ? (
+              <p className="font-medium text-success" role="status">
+                Details saved.
+              </p>
+            ) : null}
           </div>
-
-          {error && (
-            <p className="text-sm text-destructive" role="alert">
-              {error}
-            </p>
-          )}
-          {success && (
-            <p className="text-sm font-medium text-green-700 dark:text-green-300" role="status">
-              Details saved.
-            </p>
-          )}
 
           <Button type="submit" disabled={submitting} size="lg" className="w-full">
             {submitting ? (
@@ -239,7 +253,7 @@ function ChangePasswordForm() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [show, setShow] = useState(false);
+  const [errorField, setErrorField] = useState<"current" | "new" | "confirm" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -250,14 +264,17 @@ function ChangePasswordForm() {
     setSuccess(false);
 
     if (!current) {
+      setErrorField("current");
       setError("Enter your current password.");
       return;
     }
     if (next.length < 8) {
+      setErrorField("new");
       setError("New password must be at least 8 characters.");
       return;
     }
     if (next !== confirm) {
+      setErrorField("confirm");
       setError("Passwords don't match.");
       return;
     }
@@ -271,10 +288,12 @@ function ChangePasswordForm() {
       setCurrent("");
       setNext("");
       setConfirm("");
+      setErrorField(null);
       setSuccess(true);
     } catch (err) {
       // A wrong current password comes back as a 400 with the backend's
       // message — it surfaces here without logging the user out.
+      setErrorField(null);
       setError(err instanceof ApiError ? err.message : "Something went wrong. Try again.");
     } finally {
       setSubmitting(false);
@@ -286,70 +305,83 @@ function ChangePasswordForm() {
       <CardHeader>
         <CardTitle className="text-foreground">Change password</CardTitle>
         <CardDescription>
-          Choose a new password. You&apos;ll need your current one first.
+          Choose a new password. You&apos;ll need your current one first —
+          you&apos;ll stay signed in after the change.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-          <PasswordField
-            id="profile-current-password"
-            label="Current password"
-            autoComplete="current-password"
-            placeholder="Your current password"
-            value={current}
-            show={show}
-            onValueChange={(v) => {
-              setCurrent(v);
-              setError(null);
-              setSuccess(false);
-            }}
-            onToggle={() => setShow((s) => !s)}
-          />
-          <PasswordField
-            id="profile-new-password"
-            label="New password"
-            autoComplete="new-password"
-            placeholder="At least 8 characters"
-            value={next}
-            show={show}
-            onValueChange={(v) => {
-              setNext(v);
-              setError(null);
-              setSuccess(false);
-            }}
-            onToggle={() => setShow((s) => !s)}
-          />
-          <PasswordField
-            id="profile-confirm-password"
-            label="Confirm new password"
-            autoComplete="new-password"
-            placeholder="Re-enter your new password"
-            value={confirm}
-            show={show}
-            onValueChange={(v) => {
-              setConfirm(v);
-              setError(null);
-              setSuccess(false);
-            }}
-            onToggle={() => setShow((s) => !s)}
-          />
+          <div className="grid gap-5 md:grid-cols-2">
+            <PasswordField
+              id="profile-current-password"
+              label="Current password"
+              autoComplete="current-password"
+              placeholder="Your current password"
+              value={current}
+              errorId={errorField === "current" ? "password-error" : undefined}
+              onValueChange={(v) => {
+                setCurrent(v);
+                setError(null);
+                setErrorField(null);
+                setSuccess(false);
+              }}
+            />
+            <PasswordField
+              id="profile-new-password"
+              label="New password"
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+              value={next}
+              errorId={errorField === "new" ? "password-error" : undefined}
+              onValueChange={(v) => {
+                setNext(v);
+                setError(null);
+                setErrorField(null);
+                setSuccess(false);
+              }}
+            />
+            <div className="md:col-span-2">
+              <PasswordField
+                id="profile-confirm-password"
+                label="Confirm new password"
+                autoComplete="new-password"
+                placeholder="Re-enter your new password"
+                value={confirm}
+                errorId={errorField === "confirm" ? "password-error" : undefined}
+                onValueChange={(v) => {
+                  setConfirm(v);
+                  setError(null);
+                  setErrorField(null);
+                  setSuccess(false);
+                }}
+              />
+            </div>
+          </div>
 
-          {error && (
-            <p className="text-sm text-destructive" role="alert">
-              {error}
-            </p>
-          )}
-          {success && (
-            <p className="text-sm font-medium text-green-700 dark:text-green-300" role="status">
-              Password changed.
-            </p>
-          )}
+          {/* Fixed-height live region so feedback never shoves the button down. */}
+          <div aria-live="polite" className="min-h-5 text-sm">
+            {error ? (
+              <p id="password-error" className="text-destructive" role="alert">
+                {error}
+              </p>
+            ) : success ? (
+              <p className="font-medium text-success" role="status">
+                Password changed.
+              </p>
+            ) : null}
+          </div>
 
-          <Button type="submit" disabled={submitting} size="lg" variant="outline" className="w-full">
+          <Button
+            type="submit"
+            disabled={submitting}
+            size="default"
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
             {submitting ? (
               <>
                 <Spinner />
-                Saving...
+                Updating...
               </>
             ) : (
               "Update password"
@@ -367,19 +399,21 @@ function PasswordField({
   autoComplete,
   placeholder,
   value,
-  show,
+  errorId,
   onValueChange,
-  onToggle,
 }: {
   id: string;
   label: string;
   autoComplete: string;
   placeholder: string;
   value: string;
-  show: boolean;
+  errorId?: string;
   onValueChange: (v: string) => void;
-  onToggle: () => void;
 }) {
+  // Each field owns its own reveal toggle — showing one password must not
+  // reveal the others on a credential form.
+  const [shown, setShown] = useState(false);
+
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
@@ -390,20 +424,22 @@ function PasswordField({
         />
         <Input
           id={id}
-          type={show ? "text" : "password"}
+          type={shown ? "text" : "password"}
           autoComplete={autoComplete}
           placeholder={placeholder}
-          className="px-10"
+          aria-describedby={errorId}
+          className="px-11"
           value={value}
           onChange={(e) => onValueChange(e.target.value)}
         />
         <button
           type="button"
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-          onClick={onToggle}
-          aria-label={show ? "Hide password" : "Show password"}
+          onClick={() => setShown((s) => !s)}
+          aria-label={shown ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          aria-pressed={shown}
+          className="absolute right-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-input hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/30"
         >
-          {show ? <EyeSlash size={16} /> : <Eye size={16} />}
+          {shown ? <EyeSlash size={18} /> : <Eye size={18} />}
         </button>
       </div>
     </div>
