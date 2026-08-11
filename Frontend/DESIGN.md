@@ -63,3 +63,13 @@ Match the warm, community feel in the words too, not just the colors:
 - Gradients, drop shadows, glow effects — keep it flat
 - More than one saturated accent color competing per screen
 - Corporate/fintech visual language (heavy borders, dense tables, cold neutrals) — this should feel like a community project, not a bank
+
+## Fund Campaign Modal
+
+Three visual states within one modal — keep the container size stable across all three so it doesn't jump/resize as the step changes.
+
+- **Amount step**: preset amounts as pill buttons (amber-50 background, amber-800 text; selected pill gets a 2px amber-600 border to stand out from the others — the one deliberate exception to the 0.5px border rule, reserved for this kind of "currently selected" state). Custom input styled like other form inputs in the app. Fee breakdown line in `--text-secondary`, small (13px), directly under the input — informational, not the focal point.
+- **Processing step**: a simple spinner (no elaborate animation) + "Processing…" in `--text-secondary`. Keep this calm and quiet — it's a brief pause, not a moment to add visual noise.
+- **Receipt step**: lead with a green-ramp checkmark (this is one of the rare, deliberate uses of the green ramp — it means "success," don't reuse green elsewhere in the app for decoration). Amount shown large and bold-weight (500), supporting details (campaign name, timestamp, reference number) in `--text-secondary` beneath it. "Done" button styled as the single primary amber CTA, same as elsewhere in the app.
+
+Failure state (if shown inline rather than resetting to the amount step): red-ramp text for the error message, no red background fill needed — keep it understated, not alarming.

@@ -6,14 +6,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { HappyCarousel } from "./_components/happy-carousel";
 import { DiscoverCampaigns } from "./_components/discover-campaigns";
+import { HowItWorks } from "./_components/how-it-works";
+import { Faq } from "./_components/faq";
+import { ClosingCta } from "./_components/closing-cta";
 
 /**
- * Home page — hero + community carousel + discover fundraisers.
+ * Home page — hero + community carousel + how-it-works + discover fundraisers
+ * + FAQ + closing CTA.
  *
- * Hero is context-aware: logged-in users go straight to creating a campaign;
- * visitors land on signup first. Below it, the HappyCarousel belt showcases
- * the community across the six `happy` images, then DiscoverCampaigns shows
- * a bento grid of active campaigns pulled from the backend.
+ * The hero is context-aware: logged-in users go straight to creating a campaign;
+ * visitors land on signup first. Below it, the HappyCarousel belt showcases the
+ * community across the six `happy` images, HowItWorks explains the flow,
+ * DiscoverCampaigns shows a bento grid of active campaigns, and the FAQ +
+ * ClosingCta round the page out.
  */
 export default function Home() {
   const { user } = useAuth();
@@ -43,7 +48,13 @@ export default function Home() {
 
       <HappyCarousel />
 
+      <HowItWorks />
+
       <DiscoverCampaigns />
+
+      <Faq />
+
+      <ClosingCta />
     </main>
   );
 }

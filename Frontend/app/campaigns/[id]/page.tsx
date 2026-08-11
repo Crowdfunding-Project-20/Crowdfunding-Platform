@@ -1,17 +1,13 @@
 "use client";
 
-import { use, useEffect, useState, FormEvent } from "react";
+import { use, useCallback, useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { format } from "date-fns";
-import {
-  ArrowRight,
-  Heart,
-  Spinner,
-  UserCircle,
-} from "@phosphor-icons/react";
+import { ArrowRight, Heart, Spinner, UserCircle } from "@phosphor-icons/react";
 
 import { api, ApiError } from "@/lib/api";
+import { formatMoney } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Campaign, CATEGORY_LABELS } from "@/components/campaign-card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { FundCampaignModal } from "./fund-campaign-modal";
 
 /**
  * Campaign detail page — `/campaigns/[id]`.
@@ -44,12 +41,7 @@ export default function CampaignDetailPage({
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [funding, setFunding] = useState(false);
-  const [fundMessage, setFundMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  const [fundOpen, setFundOpen] = useState(false);
 
   const campaignId = Number(id);
 
@@ -79,45 +71,19 @@ export default function CampaignDetailPage({
     };
   }, [id]);
 
-  async function handleFund(e: FormEvent) {
-    e.preventDefault();
-    setFundMessage(null);
-
+  function handleOpenFund() {
     if (!user) {
       router.push("/login");
       return;
     }
-
-    const value = Number(amount);
-    if (!amount || !Number.isFinite(value) || value <= 0) {
-      setFundMessage({ type: "error", text: "Enter an amount greater than zero." });
-      return;
-    }
-
-    setFunding(true);
-    try {
-      await api.post("/api/donations", {
-        campaignId,
-        amount: value,
-      });
-      setAmount("");
-      setFundMessage({
-        type: "success",
-        text: "Your donation went through. Thank you for supporting this fundraiser.",
-      });
-      await api.get<Campaign>(`/api/campaigns/${id}`).then((data) => setCampaign(data));
-    } catch (err) {
-      setFundMessage({
-        type: "error",
-        text:
-          err instanceof ApiError
-            ? err.message
-            : "Something went wrong. Try again.",
-      });
-    } finally {
-      setFunding(false);
-    }
+    setFundOpen(true);
   }
+
+  // Refresh the campaign's figures (totalCollected, %-funded) after a donation.
+  const handleDonated = useCallback(async () => {
+    const data = await api.get<Campaign>(`/api/campaigns/${id}`);
+    setCampaign(data);
+  }, [id]);
 
   if (loading) {
     return <LoadingSkeleton />;
@@ -235,54 +201,22 @@ export default function CampaignDetailPage({
                 </p>
               </div>
 
-              {fundMessage && (
-                <Alert variant={fundMessage.type === "error" ? "destructive" : "default"}>
-                  <AlertTitle>
-                    {fundMessage.type === "success" ? "Donation successful" : "Donation failed"}
-                  </AlertTitle>
-                  <AlertDescription>{fundMessage.text}</AlertDescription>
-                </Alert>
-              )}
+              <Button
+                size="lg"
+                onClick={handleOpenFund}
+                className="w-full rounded-3xl"
+              >
+                Fund this campaign
+                <ArrowRight size={16} />
+              </Button>
 
-              <form onSubmit={handleFund} className="flex flex-col gap-3">
-                <div className="relative">
-                  <span
-                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-medium text-muted-foreground"
-                    aria-hidden="true"
-                  >
-                    $
-                  </span>
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    min="1"
-                    step="any"
-                    placeholder="Enter amount"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    disabled={funding}
-                    className="h-12 rounded-3xl pl-8 text-lg"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={funding}
-                  className="w-full rounded-3xl"
-                >
-                  {funding ? (
-                    <>
-                      <Spinner className="size-4" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      Fund this campaign
-                      <ArrowRight size={16} />
-                    </>
-                  )}
-                </Button>
-              </form>
+              <FundCampaignModal
+                key={fundOpen ? "open" : "closed"}
+                open={fundOpen}
+                onOpenChange={setFundOpen}
+                campaign={campaign}
+                onDonated={handleDonated}
+              />
 
               {!user && (
                 <p className="text-center text-sm text-muted-foreground">
@@ -384,7 +318,7 @@ function WithdrawForm({
           className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-medium text-muted-foreground"
           aria-hidden="true"
         >
-          $
+          GH₵
         </span>
         <Input
           type="number"
@@ -396,7 +330,7 @@ function WithdrawForm({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           disabled={withdrawing}
-          className="h-10 rounded-3xl pl-8"
+          className="h-10 rounded-3xl pl-12"
         />
       </div>
       <Button
@@ -444,9 +378,4 @@ function ErrorState() {
       </button>
     </main>
   );
-}
-
-function formatMoney(amount: number) {
-  if (amount == null || Number.isNaN(amount)) return "$0";
-  return "$" + Math.round(amount).toLocaleString();
 }

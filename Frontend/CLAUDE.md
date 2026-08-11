@@ -65,3 +65,15 @@ Do not invent additional pages/routes beyond what's listed here without checking
 
 ## API Integration
 @apis.json
+
+## Fund Campaign Flow
+
+The "Fund this campaign" action opens a modal (not a new route) with 3 internal steps: `amount` → `processing` → `receipt`. Manage the step as local state in one component rather than three separate components.
+
+- **Amount step**: preset pills ($10/$25/$50/$100) + a custom number input, sharing one source of truth for the current amount (selecting a preset fills the input; don't track preset selection separately from the input value). Show a fee breakdown line under the input (e.g. "You're giving $25. $1.25 supports the platform."). Disable "Confirm donation" until the amount is a valid positive number.
+- **Processing step**: purely frontend theater — wrap a `setTimeout` (~1200ms) *before* calling `POST /api/donations`. Never add an artificial delay on the backend; the API already responds instantly and should stay that way.
+- **Receipt step**: on success, show a checkmark, the amount, campaign name, timestamp, and the donation's `id` as a reference number — all straight from the existing `DonationResponse`, no new backend fields needed. One "Done" button closes the modal.
+- **On close**: update the campaign detail page's displayed `totalCollected` (refetch or callback prop — match whatever data-flow pattern the rest of the page already uses).
+- **On failure**: catch the error, return to the amount step (or a distinct error step) with a short message and a retry option. Never leave the user stuck on the processing spinner indefinitely.
+
+This flow is entirely frontend presentation over an already-complete backend endpoint (`POST /api/donations`) — no backend changes are needed to build it.

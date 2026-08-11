@@ -153,7 +153,7 @@ export default function CreateCampaignPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-12 sm:px-6 sm:py-16">
       {/* Page heading + caption */}
-      <div className="mb-8 flex flex-col gap-3">
+      <div className="mb-8 flex flex-col items-center gap-3 text-center">
         <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Create a fundraiser
         </h1>
@@ -207,7 +207,7 @@ export default function CreateCampaignPage() {
                   className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-medium text-muted-foreground"
                   aria-hidden="true"
                 >
-                  $
+                  GH₵
                 </span>
                 <Input
                   id="goalAmount"
@@ -216,7 +216,7 @@ export default function CreateCampaignPage() {
                   min="1"
                   step="any"
                   placeholder="How much do you need to raise?"
-                  className="h-12 rounded-3xl pl-8 text-lg"
+                  className="h-12 rounded-3xl pl-12 text-lg"
                   value={goalAmount}
                   onChange={(e) => setGoalAmount(e.target.value)}
                   disabled={submitting}

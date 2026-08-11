@@ -7,15 +7,15 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Whole-dollar money formatting — "$1,250".
+ * Whole-cedi money formatting — "GH₵1,250".
  *
  * Shared by campaign cards, dashboard stat tiles and history tables so every
- * amount in the app reads the same way. Cents are dropped deliberately: the
+ * amount in the app reads the same way. Pesewas are dropped deliberately: the
  * numbers here are headline figures, not statements.
  */
 export function formatMoney(amount: number | null | undefined) {
-  if (amount == null || Number.isNaN(amount)) return "$0"
-  return "$" + Math.round(amount).toLocaleString()
+  if (amount == null || Number.isNaN(amount)) return "GH₵0"
+  return "GH₵" + Math.round(amount).toLocaleString()
 }
 
 /** "14 Mar" — compact date for table rows and chart axes. */
