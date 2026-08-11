@@ -109,7 +109,11 @@ async function request(endpoint, options = {}) {
 
   // Non-2xx → throw
   if (!response.ok) {
+    // Backend validation errors come back as { error, fields: { field: msg } }.
+    // For consumers that only show one line (e.g. the signup banner), fall back
+    // to the first field's message so they still show something specific.
     const message =
+      (data?.fields && Object.values(data.fields)[0]) ||
       data?.error ||
       data?.message ||
       `Request failed with status ${response.status}`

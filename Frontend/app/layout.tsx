@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
+import { AppShell } from "@/components/app-shell";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -75,9 +76,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col">
         <AuthProvider>
-          <Navbar />
-          {children}
-          <Footer />
+          <AppShell navbar={<Navbar />} footer={<Footer />}>
+            {children}
+          </AppShell>
         </AuthProvider>
       </body>
     </html>

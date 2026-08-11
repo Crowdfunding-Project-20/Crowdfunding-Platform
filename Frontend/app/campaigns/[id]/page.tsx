@@ -3,18 +3,20 @@
 import { use, useCallback, useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { format } from "date-fns";
 import {
   ArrowRight,
   ArrowUp,
   Heart,
   Spinner,
+  Star,
   Trash,
   UserCircle,
+  Users,
 } from "@phosphor-icons/react";
 
 import { api, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/utils";
+import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { Campaign, CATEGORY_LABELS } from "@/components/campaign-card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +47,18 @@ import { FundCampaignModal } from "./fund-campaign-modal";
  * Anonymous visitors can view everything; the donation action forces login.
  */
 
+/** A donation as returned by the public backers endpoint. Anonymous donations
+ * never appear here — the backend strips them from this list entirely. */
+type BackerDonation = {
+  id: number;
+  campaignId: number;
+  amount: number;
+  feePercentSnapshot: number;
+  createdAt: string;
+  backerUsername: string;
+  anonymous: boolean;
+};
+
 export default function CampaignDetailPage({
   params,
 }: {
@@ -58,6 +72,7 @@ export default function CampaignDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [fundOpen, setFundOpen] = useState(false);
+  const [donors, setDonors] = useState<BackerDonation[] | null>(null);
 
   const campaignId = Number(id);
 
@@ -87,6 +102,29 @@ export default function CampaignDetailPage({
     };
   }, [id]);
 
+  // Public backers list. Failure is non-fatal — the page should render fine even
+  // if this optional list is unavailable, so it degrades to an empty card.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadBackers() {
+      try {
+        const data = await api.get<BackerDonation[]>(
+          `/api/campaigns/${id}/donations`
+        );
+        if (!cancelled) setDonors(data ?? []);
+      } catch {
+        if (!cancelled) setDonors([]);
+      }
+    }
+
+    loadBackers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
   function handleOpenFund() {
     if (!user) {
       router.push("/login");
@@ -97,9 +135,19 @@ export default function CampaignDetailPage({
 
   // Refresh the campaign after a donation or an edit (totalCollected, title,
   // cover, %-funded...) so the page reflects the latest data immediately.
+  // The backers list is refreshed alongside so a fresh donation shows up in the
+  // sidebar without a manual reload.
   const refreshCampaign = useCallback(async () => {
     const data = await api.get<Campaign>(`/api/campaigns/${id}`);
     setCampaign(data);
+    try {
+      const backers = await api.get<BackerDonation[]>(
+        `/api/campaigns/${id}/donations`
+      );
+      setDonors(backers ?? []);
+    } catch {
+      setDonors([]);
+    }
   }, [id]);
 
   if (loading) {
@@ -291,7 +339,217 @@ export default function CampaignDetailPage({
           />
         </div>
       )}
+
+      <BackersSection
+        donors={donors}
+        totalCollected={campaign.totalCollected}
+        onFund={handleOpenFund}
+      />
     </main>
+  );
+}
+
+/** Deterministic warm accents so every backer's medallion looks like a little portrait. */
+const DONOR_COLORS = [
+  "bg-amber-100 text-amber-900",
+  "bg-orange-100 text-orange-900",
+  "bg-yellow-100 text-yellow-900",
+  "bg-rose-100 text-rose-900",
+  "bg-stone-200 text-stone-800",
+  "bg-orange-200 text-orange-950",
+];
+
+function donorColor(username: string) {
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = (hash * 31 + username.charCodeAt(i)) >>> 0;
+  }
+  return DONOR_COLORS[hash % DONOR_COLORS.length];
+}
+
+/** "Just now" for the first minute, then date-fns relative time. */
+function timeAgo(iso: string) {
+  const then = new Date(iso);
+  const diff = Date.now() - then.getTime();
+  if (Number.isNaN(diff)) return "";
+  if (diff < 60_000) return "just now";
+  return formatDistanceToNow(then, { addSuffix: true });
+}
+
+function DonorMedallion({
+  username,
+  className = "size-9 text-sm",
+}: {
+  username: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-full font-medium ${donorColor(
+        username
+      )} ${className}`}
+    >
+      {username.charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
+function BackersSection({
+  donors,
+  totalCollected,
+  onFund,
+}: {
+  donors: BackerDonation[] | null;
+  totalCollected: number;
+  onFund: () => void;
+}) {
+  const list = donors ?? [];
+  // The biggest single gift earns a hero spotlight; everyone else forms the wall.
+  const top =
+    list.length > 0
+      ? list.reduce((a, b) => (b.amount > a.amount ? b : a))
+      : null;
+  const wall = top ? list.filter((d) => d.id !== top.id) : [];
+  const total = list.reduce((s, d) => s + d.amount, 0);
+
+  return (
+    <Card className="relative overflow-hidden shadow-none">
+      {/* Warm accents — the same soft blobs as the withdrawal status card */}
+      <div
+        className="pointer-events-none absolute -right-16 -top-16 size-44 rounded-full bg-primary/10"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -bottom-16 -left-12 size-36 rounded-full bg-primary/5"
+        aria-hidden="true"
+      />
+      <CardContent className="relative flex flex-col gap-6 pt-6">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+            <Users size={18} weight="duotone" />
+          </span>
+          <CardTitle>Backers</CardTitle>
+          {donors && donors.length > 0 && (
+            <span className="ml-auto rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+              {donors.length}
+            </span>
+          )}
+        </div>
+
+        {donors === null ? (
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-3 gap-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted" />
+              ))}
+            </div>
+            <div className="h-24 animate-pulse rounded-2xl bg-muted" />
+          </div>
+        ) : donors.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-10 text-center">
+            <span className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Users size={28} weight="duotone" />
+            </span>
+            <p className="font-heading text-lg font-medium text-foreground">
+              No public donations yet
+            </p>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Be the first to back this campaign — every gift moves the goal.
+            </p>
+            <Button
+              type="button"
+              size="lg"
+              onClick={onFund}
+              className="mt-1 w-full max-w-xs rounded-3xl"
+            >
+              Fund this campaign
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 divide-x divide-border/60 rounded-2xl border border-primary/10 bg-primary/5 text-center">
+              <div className="px-4 py-3">
+                <p className="font-heading text-2xl font-semibold text-foreground">
+                  {donors.length}
+                </p>
+                <p className="text-xs text-muted-foreground">backers</p>
+              </div>
+              <div className="px-4 py-3">
+                <p className="font-heading text-2xl font-semibold text-foreground">
+                  {formatMoney(total)}
+                </p>
+                <p className="text-xs text-muted-foreground">raised from backers</p>
+              </div>
+              <div className="px-4 py-3">
+                <p className="font-heading text-2xl font-semibold text-foreground">
+                  {top ? formatMoney(top.amount) : "—"}
+                </p>
+                <p className="text-xs text-muted-foreground">biggest gift</p>
+              </div>
+            </div>
+
+            {top && (
+              <div className="flex flex-col gap-4 rounded-3xl border border-primary/10 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <DonorMedallion
+                    username={top.backerUsername}
+                    className="size-14 text-xl"
+                  />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                      <Star size={14} weight="fill" />
+                      Biggest backer
+                    </span>
+                    <span className="font-heading text-xl font-medium text-foreground">
+                      {top.backerUsername}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {timeAgo(top.createdAt)}
+                    </span>
+                  </div>
+                </div>
+                <div className="sm:text-right">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Biggest single gift
+                  </p>
+                  <p className="font-heading text-3xl font-semibold text-primary">
+                    {formatMoney(top.amount)}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {wall.length > 0 && (
+              <ul className="flex flex-col divide-y divide-border/60">
+                {wall.map((d) => (
+                  <li key={d.id} className="flex items-center gap-3 py-3">
+                    <DonorMedallion username={d.backerUsername} />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-sm font-medium text-foreground">
+                        {d.backerUsername}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {timeAgo(d.createdAt)}
+                      </span>
+                    </div>
+                    <span className="shrink-0 text-sm font-medium text-foreground">
+                      {formatMoney(d.amount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {total < totalCollected && (
+              <p className="text-center text-xs text-muted-foreground">
+                Some supporters chose to give anonymously — their names
+                don&apos;t appear here.
+              </p>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

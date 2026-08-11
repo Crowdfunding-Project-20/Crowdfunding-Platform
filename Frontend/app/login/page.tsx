@@ -19,6 +19,19 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth, ApiError } from "@/contexts/AuthContext";
 import { AuthSplitShell } from "@/app/(auth)/AuthSplitShell";
+import { validateLogin, type LoginFieldErrors } from "@/lib/validation";
+
+const FIELD_ORDER: (keyof LoginFieldErrors)[] = ["identifier", "password"];
+
+/** Focus the first invalid field so the error is immediately visible. */
+function focusFirstError(errors: LoginFieldErrors) {
+  for (const key of FIELD_ORDER) {
+    if (errors[key]) {
+      document.getElementById(key)?.focus();
+      return;
+    }
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,7 +40,10 @@ export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Per-field validation messages (shown under the affected input).
+  const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
+  // Form-level banner for server rejections (wrong credentials, outages).
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Redirect authenticated users away from /login
@@ -40,13 +56,25 @@ export default function LoginPage() {
   // Avoid a flash of the form while rehydrating or before redirect
   if (loading || user) return null;
 
+  /** Re-typing in a field clears its error so feedback updates live. */
+  function clearFieldError(field: keyof LoginFieldErrors) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
+    setSubmitError(null);
 
-    // Basic UX validation — the backend is the real authority
-    if (!identifier.trim() || !password) {
-      setError("Enter your email/username and password to continue.");
+    // Per-field validation first — same rules as the backend.
+    const errors = validateLogin(identifier, password);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      focusFirstError(errors);
       return;
     }
 
@@ -55,7 +83,15 @@ export default function LoginPage() {
       await login(identifier.trim(), password);
       router.push("/");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Try again.");
+      if (err instanceof ApiError && err.data?.fields) {
+        // Backend rejected specific fields (400) → per-field messages.
+        setFieldErrors(err.data.fields as LoginFieldErrors);
+      } else {
+        // Wrong credentials (401) or a server failure → one clear banner.
+        setSubmitError(
+          err instanceof ApiError ? err.message : "Something went wrong. Try again.",
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -89,9 +125,19 @@ export default function LoginPage() {
                   placeholder="you@example.com or your_username"
                   className="pl-10"
                   value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  aria-invalid={!!fieldErrors.identifier || undefined}
+                  aria-describedby={fieldErrors.identifier ? "identifier-error" : undefined}
+                  onChange={(e) => {
+                    setIdentifier(e.target.value);
+                    clearFieldError("identifier");
+                  }}
                 />
               </div>
+              {fieldErrors.identifier && (
+                <p id="identifier-error" className="text-sm text-destructive" role="alert">
+                  {fieldErrors.identifier}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -108,7 +154,12 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   className="px-10"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  aria-invalid={!!fieldErrors.password || undefined}
+                  aria-describedby={fieldErrors.password ? "password-error" : undefined}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    clearFieldError("password");
+                  }}
                 />
                 <button
                   type="button"
@@ -119,11 +170,16 @@ export default function LoginPage() {
                   {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {fieldErrors.password && (
+                <p id="password-error" className="text-sm text-destructive" role="alert">
+                  {fieldErrors.password}
+                </p>
+              )}
             </div>
 
-            {error && (
+            {submitError && (
               <p className="text-sm text-destructive" role="alert">
-                {error}
+                {submitError}
               </p>
             )}
 

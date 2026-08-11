@@ -1,20 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { format } from "date-fns";
-import { CheckCircle, Spinner } from "@phosphor-icons/react";
+import {
+  Check,
+  CheckCircle,
+  Copy,
+  Heart,
+  Spinner,
+} from "@phosphor-icons/react";
 
 import { api, ApiError } from "@/lib/api";
 import { cn, formatMoney } from "@/lib/utils";
 import type { Campaign } from "@/components/campaign-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 
@@ -53,7 +60,10 @@ type DonationResponse = {
 type FundCampaignModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  campaign: Pick<Campaign, "id" | "title">;
+  campaign: Pick<
+    Campaign,
+    "id" | "title" | "imageUrl" | "goalAmount" | "totalCollected"
+  >;
   onDonated: () => void | Promise<void>;
 };
 
@@ -67,9 +77,17 @@ export function FundCampaignModal({
   const [amount, setAmount] = useState("");
   const [response, setResponse] = useState<DonationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [anonymous, setAnonymous] = useState(false);
 
   const value = Number(amount);
   const isValid = amount !== "" && Number.isFinite(value) && value > 0;
+
+  // Mini progress status — same guard/cap logic as the campaign detail page:
+  // the label can keep climbing past 100% (overfunded), the bar never overflows.
+  const goal = campaign.goalAmount > 0 ? campaign.goalAmount : 1;
+  const pct = Math.max(0, (campaign.totalCollected / goal) * 100);
+  const barWidth = Math.min(100, pct);
 
   async function handleConfirm() {
     if (!isValid) {
@@ -84,6 +102,7 @@ export function FundCampaignModal({
       const res = await api.post<DonationResponse>("/api/donations", {
         campaignId: campaign.id,
         amount: value,
+        anonymous,
       });
       setResponse(res);
       void onDonated(); // refresh totalCollected; don't fail the receipt on a refresh error
@@ -96,15 +115,58 @@ export function FundCampaignModal({
     }
   }
 
+  async function handleCopyReference() {
+    if (!response) return;
+    try {
+      await navigator.clipboard.writeText(`Donation #${response.id}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Clipboard unavailable (e.g. insecure context) — the reference stays
+      // visible on screen, so there's nothing meaningful to recover here.
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogHeader>
-        <DialogTitle>Fund this campaign</DialogTitle>
-        <DialogDescription>{campaign.title}</DialogDescription>
-      </DialogHeader>
+      <DialogContent className="relative gap-5 overflow-hidden sm:max-w-[26rem]">
+        {/* Soft amber accents — same warmth as the withdrawal status card */}
+        <div
+          className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-primary/10"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -bottom-12 -left-8 size-24 rounded-full bg-primary/5"
+          aria-hidden="true"
+        />
 
-      <DialogContent className="gap-6">
-        <div className="flex min-h-[20rem] flex-col">
+        {/* Header: cover thumbnail (or heart medallion) + campaign context */}
+        <div className="relative flex items-center gap-3 pr-8">
+          {campaign.imageUrl ? (
+            <Image
+              src={campaign.imageUrl}
+              alt=""
+              width={44}
+              height={44}
+              unoptimized
+              className="size-11 shrink-0 rounded-2xl object-cover ring-1 ring-foreground/10"
+            />
+          ) : (
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+              <Heart size={20} weight="duotone" />
+            </span>
+          )}
+          <div className="flex min-w-0 flex-col">
+            <DialogTitle className="text-lg leading-snug">
+              Fund this campaign
+            </DialogTitle>
+            <DialogDescription className="truncate">
+              {campaign.title}
+            </DialogDescription>
+          </div>
+        </div>
+
+        <div className="relative flex min-h-[19rem] flex-col">
           {step === "amount" && (
             <div className="flex flex-1 flex-col gap-4">
               <div className="flex flex-wrap gap-2">
@@ -156,6 +218,40 @@ export function FundCampaignModal({
                 <p className="text-sm text-destructive">{error}</p>
               )}
 
+              {/* Mini progress status — anchors the donation in the campaign's goal */}
+              <div className="flex flex-col gap-1.5 rounded-2xl bg-primary/5 px-4 py-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>
+                    {formatMoney(campaign.totalCollected)} of{" "}
+                    {formatMoney(campaign.goalAmount)} goal
+                  </span>
+                  <span className="font-medium text-foreground">
+                    {Math.round(pct)}% funded
+                  </span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-primary/10">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${barWidth}%` }}
+                  />
+                </div>
+              </div>
+
+              <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3">
+                <Switch
+                  checked={anonymous}
+                  onCheckedChange={setAnonymous}
+                />
+                <span className="flex flex-col">
+                  <span className="text-sm font-medium text-foreground">
+                    Donate anonymously
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Your username won&apos;t appear on the backer list
+                  </span>
+                </span>
+              </label>
+
               <Button
                 type="button"
                 size="lg"
@@ -170,26 +266,52 @@ export function FundCampaignModal({
 
           {step === "processing" && (
             <div className="flex flex-1 flex-col items-center justify-center gap-3">
-              <Spinner className="size-6 animate-spin text-amber-600" />
+              <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Spinner className="size-6 animate-spin" />
+              </span>
               <p className="text-sm text-muted-foreground">Processing…</p>
             </div>
           )}
 
           {step === "receipt" && response && (
-            <div className="flex flex-1 flex-col items-center gap-2 pt-2 text-center">
-              <CheckCircle
-                weight="fill"
-                className="size-12 text-emerald-600"
-              />
-              <span className="font-heading text-3xl font-medium text-foreground">
-                {formatMoney(response.amount)}
+            <div className="flex flex-1 flex-col items-center gap-3 pt-2 text-center">
+              <span className="flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20 dark:text-emerald-400">
+                <CheckCircle weight="fill" className="size-8" />
               </span>
-              <div className="flex flex-col items-center gap-0.5 text-sm text-muted-foreground">
-                <span>{campaign.title}</span>
-                <span>{format(new Date(response.createdAt), "MMM d, yyyy · HH:mm")}</span>
-                <span>Donation #{response.id}</span>
+
+              <div className="flex flex-col gap-0.5">
+                <span className="font-heading text-3xl font-medium text-foreground">
+                  {formatMoney(response.amount)}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {campaign.title}
+                </span>
               </div>
-              <DialogFooter className="mt-auto w-full pt-2">
+
+              <div className="w-full rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-left">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(response.createdAt), "MMM d, yyyy · HH:mm")}
+                  </span>
+                  <span className="text-sm font-medium text-foreground">
+                    Donation #{response.id}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyReference}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                >
+                  {copied ? (
+                    <Check size={13} weight="bold" />
+                  ) : (
+                    <Copy size={13} />
+                  )}
+                  {copied ? "Copied" : "Copy reference"}
+                </button>
+              </div>
+
+              <DialogFooter className="mt-auto w-full pt-1">
                 <Button
                   type="button"
                   size="lg"

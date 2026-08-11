@@ -33,6 +33,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { validateCampaign, type CampaignFieldErrors } from "@/lib/validation";
+
+/** Focusable fields in display order. */
+const FIELD_ORDER: (keyof CampaignFieldErrors)[] = [
+  "title",
+  "description",
+  "goalAmount",
+  "category",
+];
+
+/** Focus the first invalid field so the error is immediately visible. */
+function focusFirstError(errors: CampaignFieldErrors) {
+  for (const key of FIELD_ORDER) {
+    if (errors[key]) {
+      document.getElementById(`edit-${key}`)?.focus();
+      return;
+    }
+  }
+}
 
 /**
  * Edit Campaign page — `/campaigns/[id]/edit`.
@@ -175,7 +194,10 @@ function EditCampaignForm({
     campaign.imageUrl ?? null,
   );
   const [dragging, setDragging] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Per-field validation messages (shown under the affected control).
+  const [fieldErrors, setFieldErrors] = useState<CampaignFieldErrors>({});
+  // Form-level banner for server rejections (auth expiry, outages, ...).
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -190,13 +212,26 @@ function EditCampaignForm({
     };
   }, [preview]);
 
+  /** Re-typing in a field (or picking a new file) clears its error. */
+  function clearFieldError(field: keyof CampaignFieldErrors) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }
+
   function handleFile(file: File | undefined | null) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("Please choose an image file (JPG, PNG, WebP, ...).");
+      setFieldErrors((prev) => ({
+        ...prev,
+        image: "Please choose an image file (JPG, PNG, WebP, ...).",
+      }));
       return;
     }
-    setError(null);
+    clearFieldError("image");
     setImage(file);
     setPreview(URL.createObjectURL(file));
   }
@@ -209,20 +244,17 @@ function EditCampaignForm({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
+    setSubmitError(null);
 
-    // Basic UX validation — the backend (title + goalAmount + category) is the real authority.
-    if (!title.trim()) {
-      setError("Give your fundraiser a title.");
-      return;
-    }
-    const goal = Number(goalAmount);
-    if (!goalAmount || !Number.isFinite(goal) || goal <= 0) {
-      setError("Enter a goal amount greater than zero.");
-      return;
-    }
-    if (!category) {
-      setError("Choose a category for your fundraiser.");
+    // Per-field validation — matches the backend's rules. The goal may be
+    // locked (disabled) but its unchanged value is still valid.
+    const errors = validateCampaign(
+      { title, description, goalAmount, category, hasImage: preview !== null },
+      false, // a cover is optional on edit — the existing one is kept
+    );
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      focusFirstError(errors);
       return;
     }
 
@@ -243,18 +275,23 @@ function EditCampaignForm({
       await api.put<Campaign>(`/api/campaigns/${campaignId}`, {
         title: title.trim(),
         description: description.trim(),
-        goalAmount: goal,
+        goalAmount: Number(goalAmount),
         imageUrl: finalImageUrl,
         category,
       });
 
       router.push(`/campaigns/${campaignId}`);
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Something went wrong. Try again.",
-      );
+      if (err instanceof ApiError && err.data?.fields) {
+        // Backend rejected specific fields (400) → per-field messages.
+        setFieldErrors(err.data.fields as CampaignFieldErrors);
+      } else {
+        setSubmitError(
+          err instanceof ApiError
+            ? err.message
+            : "Something went wrong. Try again.",
+        );
+      }
     } finally {
       setSaving(false);
     }
@@ -281,9 +318,19 @@ function EditCampaignForm({
               autoFocus
               placeholder="Give your fundraiser a clear, compelling title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              aria-invalid={!!fieldErrors.title || undefined}
+              aria-describedby={fieldErrors.title ? "edit-title-error" : undefined}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                clearFieldError("title");
+              }}
               disabled={saving}
             />
+            {fieldErrors.title && (
+              <p id="edit-title-error" className="text-sm text-destructive" role="alert">
+                {fieldErrors.title}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -293,9 +340,19 @@ function EditCampaignForm({
               rows={5}
               placeholder="Tell people why this campaign matters, what you'll do with the funds, and who it helps..."
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              aria-invalid={!!fieldErrors.description || undefined}
+              aria-describedby={fieldErrors.description ? "edit-description-error" : undefined}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                clearFieldError("description");
+              }}
               disabled={saving}
             />
+            {fieldErrors.description && (
+              <p id="edit-description-error" className="text-sm text-destructive" role="alert">
+                {fieldErrors.description}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -316,7 +373,12 @@ function EditCampaignForm({
                 placeholder="How much do you need to raise?"
                 className="h-12 rounded-3xl pl-12 text-lg"
                 value={goalAmount}
-                onChange={(e) => setGoalAmount(e.target.value)}
+                aria-invalid={!!fieldErrors.goalAmount || undefined}
+                aria-describedby={fieldErrors.goalAmount ? "edit-goalAmount-error" : undefined}
+                onChange={(e) => {
+                  setGoalAmount(e.target.value);
+                  clearFieldError("goalAmount");
+                }}
                 disabled={saving || goalLocked}
               />
             </div>
@@ -325,15 +387,28 @@ function EditCampaignForm({
                 Goal can&apos;t be changed once donations are received.
               </p>
             )}
+            {fieldErrors.goalAmount && (
+              <p id="edit-goalAmount-error" className="text-sm text-destructive" role="alert">
+                {fieldErrors.goalAmount}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="edit-category">Category</Label>
             <Select
               value={category}
-              onValueChange={(value) => setCategory(value ?? "")}
+              onValueChange={(value) => {
+                setCategory(value ?? "");
+                clearFieldError("category");
+              }}
             >
-              <SelectTrigger id="edit-category" className="w-full">
+              <SelectTrigger
+                id="edit-category"
+                className="w-full"
+                aria-invalid={!!fieldErrors.category || undefined}
+                aria-describedby={fieldErrors.category ? "edit-category-error" : undefined}
+              >
                 <SelectValue placeholder="Choose a category" />
               </SelectTrigger>
               <SelectContent>
@@ -344,6 +419,11 @@ function EditCampaignForm({
                 ))}
               </SelectContent>
             </Select>
+            {fieldErrors.category && (
+              <p id="edit-category-error" className="text-sm text-destructive" role="alert">
+                {fieldErrors.category}
+              </p>
+            )}
           </div>
 
           {/* Cover image — optional on edit; keeps the existing cover if unchanged */}
@@ -423,9 +503,9 @@ function EditCampaignForm({
             )}
           </div>
 
-          {error && (
+          {submitError && (
             <p className="text-sm text-destructive" role="alert">
-              {error}
+              {submitError}
             </p>
           )}
 

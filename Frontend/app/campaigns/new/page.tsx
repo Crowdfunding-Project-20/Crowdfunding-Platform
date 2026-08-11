@@ -31,8 +31,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { validateCampaign, type CampaignFieldErrors } from "@/lib/validation";
 
 type CampaignResponse = { id: number };
+
+/** Focusable fields in display order — image is validated but not auto-focused. */
+const FIELD_ORDER: (keyof CampaignFieldErrors)[] = [
+  "title",
+  "description",
+  "goalAmount",
+  "category",
+];
+
+/** Focus the first invalid field so the error is immediately visible. */
+function focusFirstError(errors: CampaignFieldErrors) {
+  for (const key of FIELD_ORDER) {
+    if (errors[key]) {
+      document.getElementById(key)?.focus();
+      return;
+    }
+  }
+}
 
 /**
  * Create Campaign page — `/campaigns/new` (the "Raise funds" action).
@@ -43,8 +62,8 @@ type CampaignResponse = { id: number };
  *   2. create the campaign with that URL (`/api/campaigns`)
  *   3. redirect to the new campaign's detail page
  *
- * All four fields are required. Validation here is basic UX only — the
- * backend (which enforces title + goalAmount) is the real authority.
+ * All five fields are required; rules mirror the backend's Bean Validation so
+ * the user gets per-field feedback immediately.
  */
 export default function CreateCampaignPage() {
   const router = useRouter();
@@ -57,7 +76,10 @@ export default function CreateCampaignPage() {
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Per-field validation messages (shown under the affected control).
+  const [fieldErrors, setFieldErrors] = useState<CampaignFieldErrors>({});
+  // Form-level banner for server rejections (auth expiry, outages, ...).
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -78,13 +100,26 @@ export default function CreateCampaignPage() {
 
   if (loading || !user) return null;
 
+  /** Re-typing in a field (or picking a new file) clears its error. */
+  function clearFieldError(field: keyof CampaignFieldErrors) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }
+
   function handleFile(file: File | undefined | null) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("Please choose an image file (JPG, PNG, WebP, ...).");
+      setFieldErrors((prev) => ({
+        ...prev,
+        image: "Please choose an image file (JPG, PNG, WebP, ...).",
+      }));
       return;
     }
-    setError(null);
+    clearFieldError("image");
     if (preview) URL.revokeObjectURL(preview);
     const url = URL.createObjectURL(file);
     setImage(file);
@@ -99,52 +134,49 @@ export default function CreateCampaignPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
+    setSubmitError(null);
 
-    // Basic UX validation — all fields required.
-    if (!title.trim()) {
-      setError("Give your fundraiser a title.");
+    // Per-field validation — matches the backend's rules.
+    const errors = validateCampaign(
+      { title, description, goalAmount, category, hasImage: !!image },
+      true, // cover image is required on create
+    );
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      focusFirstError(errors);
       return;
     }
-    if (!description.trim()) {
-      setError("Tell people why this campaign matters.");
-      return;
-    }
-    const goal = Number(goalAmount);
-    if (!goalAmount || !Number.isFinite(goal) || goal <= 0) {
-      setError("Enter a goal amount greater than zero.");
-      return;
-    }
-    if (!image) {
-      setError("Add a cover image for your fundraiser.");
-      return;
-    }
-    if (!category) {
-      setError("Choose a category for your fundraiser.");
-      return;
-    }
+    // The validator required an image, so narrowing here is guaranteed — but TS
+    // only sees `!!image`, so re-narrow into a local for the form data below.
+    const coverImage = image;
+    if (!coverImage) return;
 
     setSubmitting(true);
     try {
       // 1. Upload the image and get back a hosted URL.
       const fd = new FormData();
-      fd.append("file", image);
+      fd.append("file", coverImage);
       const { url } = await api.post<{ url: string }>("/api/images/upload", fd);
 
       // 2. Create the campaign with that image URL.
       const campaign = await api.post<CampaignResponse>("/api/campaigns", {
         title: title.trim(),
         description: description.trim(),
-        goalAmount: goal,
+        goalAmount: Number(goalAmount),
         imageUrl: url,
         category,
       });
 
       router.push(`/campaigns/${campaign.id}`);
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Something went wrong. Try again.",
-      );
+      if (err instanceof ApiError && err.data?.fields) {
+        // Backend rejected specific fields (400) → per-field messages.
+        setFieldErrors(err.data.fields as CampaignFieldErrors);
+      } else {
+        setSubmitError(
+          err instanceof ApiError ? err.message : "Something went wrong. Try again.",
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -183,9 +215,19 @@ export default function CreateCampaignPage() {
                 autoFocus
                 placeholder="Give your fundraiser a clear, compelling title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                aria-invalid={!!fieldErrors.title || undefined}
+                aria-describedby={fieldErrors.title ? "title-error" : undefined}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  clearFieldError("title");
+                }}
                 disabled={submitting}
               />
+              {fieldErrors.title && (
+                <p id="title-error" className="text-sm text-destructive" role="alert">
+                  {fieldErrors.title}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -195,9 +237,19 @@ export default function CreateCampaignPage() {
                 rows={5}
                 placeholder="Tell people why this campaign matters, what you'll do with the funds, and who it helps..."
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                aria-invalid={!!fieldErrors.description || undefined}
+                aria-describedby={fieldErrors.description ? "description-error" : undefined}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  clearFieldError("description");
+                }}
                 disabled={submitting}
               />
+              {fieldErrors.description && (
+                <p id="description-error" className="text-sm text-destructive" role="alert">
+                  {fieldErrors.description}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -218,16 +270,37 @@ export default function CreateCampaignPage() {
                   placeholder="How much do you need to raise?"
                   className="h-12 rounded-3xl pl-12 text-lg"
                   value={goalAmount}
-                  onChange={(e) => setGoalAmount(e.target.value)}
+                  aria-invalid={!!fieldErrors.goalAmount || undefined}
+                  aria-describedby={fieldErrors.goalAmount ? "goalAmount-error" : undefined}
+                  onChange={(e) => {
+                    setGoalAmount(e.target.value);
+                    clearFieldError("goalAmount");
+                  }}
                   disabled={submitting}
                 />
               </div>
+              {fieldErrors.goalAmount && (
+                <p id="goalAmount-error" className="text-sm text-destructive" role="alert">
+                  {fieldErrors.goalAmount}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="category">Category</Label>
-              <Select value={category} onValueChange={(value) => setCategory(value ?? "")}>
-                <SelectTrigger id="category" className="w-full">
+              <Select
+                value={category}
+                onValueChange={(value) => {
+                  setCategory(value ?? "");
+                  clearFieldError("category");
+                }}
+              >
+                <SelectTrigger
+                  id="category"
+                  className="w-full"
+                  aria-invalid={!!fieldErrors.category || undefined}
+                  aria-describedby={fieldErrors.category ? "category-error" : undefined}
+                >
                   <SelectValue placeholder="Choose a category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -238,6 +311,11 @@ export default function CreateCampaignPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {fieldErrors.category && (
+                <p id="category-error" className="text-sm text-destructive" role="alert">
+                  {fieldErrors.category}
+                </p>
+              )}
             </div>
 
             {/* Image upload */}
@@ -315,11 +393,16 @@ export default function CreateCampaignPage() {
                   </p>
                 </div>
               )}
+              {fieldErrors.image && (
+                <p id="image-error" className="text-sm text-destructive" role="alert">
+                  {fieldErrors.image}
+                </p>
+              )}
             </div>
 
-            {error && (
+            {submitError && (
               <p className="text-sm text-destructive" role="alert">
-                {error}
+                {submitError}
               </p>
             )}
 
