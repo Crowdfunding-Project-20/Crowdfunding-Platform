@@ -95,6 +95,37 @@ export function toCumulativeDailySeries(points: SeriesPoint[]) {
   return toCumulative(bucketByDay(points));
 }
 
+/* ─── Creator metrics ─────────────────────────────────────────────── */
+
+/**
+ * There is no creator-card-list analytics endpoint, so this page's headline
+ * figures come from the user's campaign list (`/api/campaigns/my`). Purely
+ * descriptive sums over what the user already sees — no business rules.
+ */
+export function deriveCreatorMetrics(campaigns: Campaign[]) {
+  const totalCollected = campaigns.reduce(
+    (sum, c) => sum + (Number(c.totalCollected) || 0),
+    0,
+  );
+  const totalGoal = campaigns.reduce(
+    (sum, c) => sum + (Number(c.goalAmount) || 0),
+    0,
+  );
+  const availableBalance = campaigns.reduce(
+    (sum, c) => sum + (Number(c.availableBalance) || 0),
+    0,
+  );
+  const activeCount = campaigns.filter((c) => c.status === "ACTIVE").length;
+
+  return {
+    campaignCount: campaigns.length,
+    activeCount,
+    totalCollected,
+    totalGoal,
+    availableBalance,
+  };
+}
+
 /* ─── Backer metrics ──────────────────────────────────────────────── */
 
 /**
@@ -123,8 +154,12 @@ export function sortByNewest<T extends { createdAt?: string }>(items: T[]) {
   );
 }
 
-/** Clamped 0–100 funding percentage, guarding a zero or malformed goal. */
+/**
+ * Funding percentage — intentionally NOT capped at 100, so overfunded
+ * campaigns keep climbing past the goal. Guards a zero or malformed goal.
+ * Callers that render a bar's fill width must clamp the value themselves.
+ */
 export function fundedPercent(collected: number, goal: number) {
   const safeGoal = goal > 0 ? goal : 1;
-  return Math.min(100, Math.max(0, (collected / safeGoal) * 100));
+  return Math.max(0, (collected / safeGoal) * 100);
 }

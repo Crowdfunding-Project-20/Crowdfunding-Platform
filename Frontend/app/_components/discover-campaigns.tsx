@@ -6,6 +6,7 @@ import { ArrowRight } from "@phosphor-icons/react";
 
 import { api } from "@/lib/api";
 import { CampaignCard, type Campaign } from "@/components/campaign-card";
+import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * DiscoverCampaigns — homepage section showing a bento grid of active
@@ -20,6 +21,7 @@ import { CampaignCard, type Campaign } from "@/components/campaign-card";
  */
 
 export function DiscoverCampaigns() {
+  const { user, loading } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
   const [error, setError] = useState(false);
 
@@ -56,7 +58,7 @@ export function DiscoverCampaigns() {
             </p>
           </div>
           <Link
-            href="/campaigns"
+            href={loading ? "/campaigns" : user ? "/campaigns" : "/login"}
             className="inline-flex items-center gap-1.5 self-start rounded-full px-3 py-2 text-sm font-medium text-primary transition-colors hover:text-primary/80 sm:self-auto"
           >
             See all

@@ -11,6 +11,7 @@
  */
 
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { api, TOKEN_KEY, ApiError } from "@/lib/api";
 
 type Role = "USER" | "ADMIN";
@@ -56,6 +57,7 @@ function decodeJwt(token: string): Record<string, unknown> | null {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,7 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setToken(null);
     setUser(null);
-  }, []);
+    router.push("/login");
+  }, [router]);
 
   return (
     <AuthContext.Provider value={{ user, token, loading, login, setSession, logout }}>

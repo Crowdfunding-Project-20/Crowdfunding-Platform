@@ -1,15 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, FormEvent, DragEvent } from "react";
+import { use, useEffect, useRef, useState, FormEvent, DragEvent } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
-import { UploadSimple, X, Spinner } from "@phosphor-icons/react";
+import { ArrowLeft, UploadSimple, X } from "@phosphor-icons/react";
 
-import { api, ApiError } from "@/lib/api";
-import {
-  Campaign,
-  CAMPAIGN_CATEGORIES,
-  CATEGORY_LABELS,
-} from "@/components/campaign-card";
 import {
   Select,
   SelectContent,
@@ -17,43 +13,156 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Campaign,
+  CAMPAIGN_CATEGORIES,
+  CATEGORY_LABELS,
+} from "@/components/campaign-card";
+
+import { api, ApiError } from "@/lib/api";
+import { useRequireAuth } from "@/hooks/use-require-auth";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 
 /**
- * Edit fundraiser — a modal (not a route) for a creator to update their own
- * campaign. Closed over the same controlled `Dialog` pattern as the fund modal,
- * pre-filled from the current campaign on each open (it's remounted via `key`,
- * so state initializers run fresh).
+ * Edit Campaign page — `/campaigns/[id]/edit`.
  *
- * Success PUTs to `/api/campaigns/{id}`, then the page re-fetches the campaign
- * (via `onSaved`) so the detail view updates immediately. Image is optional on
- * edit: an existing cover is preserved unless a new file is chosen or removed.
+ * Creator-only. A full page (not a modal) so the whole form stays visible,
+ * laid out like the "Raise funds" create page and pre-filled from the current
+ * campaign. Success PUTs to `/api/campaigns/{id}`, then redirects back to the
+ * campaign detail page.
+ *
+ * Goal-lock rule: once a campaign has received donations (totalCollected > 0),
+ * its goal can no longer be changed — the goal input is disabled and a note is
+ * shown. This is enforced server-side too; the UI lock is UX only.
  */
 
-type EditCampaignModalProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  campaign: Campaign;
-  onSaved: () => void | Promise<void>;
-};
+export default function EditCampaignPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const router = useRouter();
+  const { user, ready } = useRequireAuth();
 
-export function EditCampaignModal({
-  open,
-  onOpenChange,
+  const campaignId = Number(id);
+
+  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  // Owner guard — only the creator edits their own campaign (UX only; the
+  // backend PUT enforces ownership as the real boundary).
+  const isOwner = !!user && user.email === campaign?.creatorEmail;
+
+  useEffect(() => {
+    if (!ready || !campaign) return;
+    if (!isOwner) {
+      router.replace(`/campaigns/${campaignId}`);
+    }
+  }, [ready, campaign, isOwner, campaignId, router]);
+
+  useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
+    const abort = new AbortController();
+
+    async function load() {
+      try {
+        const data = await api.get<Campaign>(`/api/campaigns/${id}`, {
+          signal: abort.signal,
+        });
+        if (cancelled) return;
+        setCampaign(data);
+        setError(false);
+      } catch {
+        if (cancelled) return;
+        setError(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+      abort.abort();
+    };
+  }, [id, ready]);
+
+  if (!ready || !user) return null;
+
+  if (loading) {
+    return (
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-12 sm:px-6 sm:py-16">
+        <div className="mb-8 text-center text-muted-foreground">Loading…</div>
+      </main>
+    );
+  }
+
+  if (error || !campaign) {
+    return (
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center gap-4 px-4 py-12 text-center sm:px-6 sm:py-16">
+        <p className="text-muted-foreground">
+          This fundraiser could not be loaded.
+        </p>
+        <Button variant="outline" onClick={() => router.back()}>
+          Go back
+        </Button>
+      </main>
+    );
+  }
+
+  return (
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-12 sm:px-6 sm:py-16">
+      <Link
+        href={`/campaigns/${campaignId}`}
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft size={16} />
+        Back to campaign
+      </Link>
+
+      {/* Page heading + caption */}
+      <div className="mb-8 flex flex-col items-center gap-3 text-center">
+        <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          Edit fundraiser
+        </h1>
+        <p className="max-w-md text-base text-muted-foreground">
+          Update your story and keep your community in the loop.
+        </p>
+      </div>
+
+      <EditCampaignForm campaign={campaign} campaignId={campaignId} />
+    </main>
+  );
+}
+
+/**
+ * The editable form, seeded once from the loaded campaign. Lives in its own
+ * component so the field state initializers run fresh from the campaign data.
+ */
+function EditCampaignForm({
   campaign,
-  onSaved,
-}: EditCampaignModalProps) {
+  campaignId,
+}: {
+  campaign: Campaign;
+  campaignId: number;
+}) {
+  const router = useRouter();
+
   const [title, setTitle] = useState(campaign.title);
   const [description, setDescription] = useState(campaign.description ?? "");
   const [goalAmount, setGoalAmount] = useState(String(campaign.goalAmount));
@@ -71,7 +180,10 @@ export function EditCampaignModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Free the object URL on unmount (or when a new preview replaces it).
+  // The goal is locked once the campaign has received any donation.
+  const goalLocked = campaign.totalCollected > 0;
+
+  // Free the object URL when the preview changes or the page unmounts.
   useEffect(() => {
     return () => {
       if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
@@ -128,7 +240,7 @@ export function EditCampaignModal({
         finalImageUrl = url;
       }
 
-      await api.put<Campaign>(`/api/campaigns/${campaign.id}`, {
+      await api.put<Campaign>(`/api/campaigns/${campaignId}`, {
         title: title.trim(),
         description: description.trim(),
         goalAmount: goal,
@@ -136,8 +248,7 @@ export function EditCampaignModal({
         category,
       });
 
-      void onSaved(); // refresh the detail page
-      onOpenChange(false);
+      router.push(`/campaigns/${campaignId}`);
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -150,23 +261,24 @@ export function EditCampaignModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogHeader>
-        <DialogTitle>Edit fundraiser</DialogTitle>
-        <DialogDescription>{campaign.title}</DialogDescription>
-      </DialogHeader>
+    <Card className="shadow-none">
+      <CardHeader>
+        <CardTitle className="text-lg text-foreground">
+          Fundraiser details
+        </CardTitle>
+        <CardDescription>
+          Save your changes and your community will see them right away.
+        </CardDescription>
+      </CardHeader>
 
-      <DialogContent className="gap-6 sm:max-w-lg">
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-4"
-          noValidate
-        >
+      <CardContent>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
           <div className="flex flex-col gap-2">
             <Label htmlFor="edit-title">Title</Label>
             <Input
               id="edit-title"
               type="text"
+              autoFocus
               placeholder="Give your fundraiser a clear, compelling title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -178,7 +290,7 @@ export function EditCampaignModal({
             <Label htmlFor="edit-description">Description</Label>
             <Textarea
               id="edit-description"
-              rows={4}
+              rows={5}
               placeholder="Tell people why this campaign matters, what you'll do with the funds, and who it helps..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -205,9 +317,14 @@ export function EditCampaignModal({
                 className="h-12 rounded-3xl pl-12 text-lg"
                 value={goalAmount}
                 onChange={(e) => setGoalAmount(e.target.value)}
-                disabled={saving}
+                disabled={saving || goalLocked}
               />
             </div>
+            {goalLocked && (
+              <p className="text-xs text-muted-foreground">
+                Goal can&apos;t be changed once donations are received.
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -284,7 +401,7 @@ export function EditCampaignModal({
                 }}
                 onDragLeave={() => setDragging(false)}
                 onDrop={handleDrop}
-                className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed px-6 py-8 text-center transition-colors ${
+                className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
                   dragging
                     ? "border-primary bg-primary/10"
                     : "border-border bg-muted/40 hover:border-primary/50 hover:bg-muted/60"
@@ -312,33 +429,23 @@ export function EditCampaignModal({
             </p>
           )}
 
-          <DialogFooter className="mt-1 w-full gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={saving}
-              onClick={() => onOpenChange(false)}
-              className="flex-1 rounded-3xl"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={saving}
-              className="flex-1 rounded-3xl"
-            >
-              {saving ? (
-                <>
-                  <Spinner className="size-4 animate-spin" />
-                  Saving…
-                </>
-              ) : (
-                "Save changes"
-              )}
-            </Button>
-          </DialogFooter>
+          <Button
+            type="submit"
+            disabled={saving}
+            size="lg"
+            className="mt-2 w-full"
+          >
+            {saving ? (
+              <>
+                <Spinner />
+                Saving changes...
+              </>
+            ) : (
+              "Save changes"
+            )}
+          </Button>
         </form>
-      </DialogContent>
-    </Dialog>
+      </CardContent>
+    </Card>
   );
 }

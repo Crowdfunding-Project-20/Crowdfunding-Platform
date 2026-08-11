@@ -212,6 +212,10 @@ export default function CreatorDashboardPage() {
                       campaign.totalCollected,
                       campaign.goalAmount,
                     );
+                    // `pct` can exceed 100 for overfunded campaigns; cap only
+                    // the fill width so the bar stays inside its track while
+                    // the % text below keeps climbing.
+                    const barWidth = Math.min(100, pct);
                     const met = pct >= 100;
                     return (
                       <TableRow key={campaign.id}>
@@ -237,14 +241,14 @@ export default function CreatorDashboardPage() {
                           <div
                             className="h-1.5 w-full rounded-full bg-muted"
                             role="progressbar"
-                            aria-valuenow={Math.round(pct)}
+                            aria-valuenow={Math.round(barWidth)}
                             aria-valuemin={0}
                             aria-valuemax={100}
                             aria-label={`${campaign.title} funding progress`}
                           >
                             <div
                               className="h-full rounded-full bg-primary transition-all"
-                              style={{ width: `${pct}%` }}
+                              style={{ width: `${barWidth}%` }}
                             />
                           </div>
                           <span className="mt-1 block text-xs text-muted-foreground">

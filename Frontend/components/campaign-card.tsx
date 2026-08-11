@@ -80,9 +80,12 @@ export function CampaignCard({
 }) {
   const { id, title, description, imageUrl, goalAmount, totalCollected, category } =
     campaign;
-  // Avoid divide-by-zero on a malformed goal; clamp to 0–100.
+  // Avoid divide-by-zero on a malformed goal. `pct` is the raw percentage and
+  // can exceed 100 on overfunded campaigns; only the bar fill is capped at a
+  // full track so it doesn't overflow.
   const goal = goalAmount > 0 ? goalAmount : 1;
-  const pct = Math.min(100, Math.max(0, (totalCollected / goal) * 100));
+  const pct = Math.max(0, (totalCollected / goal) * 100);
+  const barWidth = Math.min(100, pct);
 
   return (
     <Link
@@ -133,13 +136,13 @@ export function CampaignCard({
         <div
           className="mt-1 h-1.5 w-full rounded-full bg-muted"
           role="progressbar"
-          aria-valuenow={Math.round(pct)}
+          aria-valuenow={Math.round(barWidth)}
           aria-valuemin={0}
           aria-valuemax={100}
         >
           <div
             className="h-full rounded-full bg-primary transition-all"
-            style={{ width: `${pct}%` }}
+            style={{ width: `${barWidth}%` }}
           />
         </div>
         <div className="mt-0.5 flex items-center justify-between text-xs text-muted-foreground">

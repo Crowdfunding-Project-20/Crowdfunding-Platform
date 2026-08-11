@@ -78,6 +78,14 @@ public class CampaignService {
             throw new UnauthorizedException("You are not the creator of this campaign");
         }
 
+        // Once a campaign has received donations, its goal is locked — changing it
+        // would mislead the people who already donated toward the original goal.
+        if (request.getGoalAmount().compareTo(campaign.getGoalAmount()) != 0
+                && campaign.getTotalCollected().compareTo(BigDecimal.ZERO) > 0) {
+            throw new BadRequestException(
+                    "Goal amount cannot be changed once donations have been received");
+        }
+
         campaign.setTitle(request.getTitle());
         campaign.setDescription(request.getDescription());
         campaign.setGoalAmount(request.getGoalAmount());

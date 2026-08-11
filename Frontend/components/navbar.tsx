@@ -39,7 +39,7 @@ export function Navbar() {
         {/* Left — nav links */}
         <div className="flex min-w-0 items-center gap-0.5 sm:gap-1">
           <Link
-            href="/campaigns"
+            href={loading ? "/campaigns" : user ? "/campaigns" : "/login"}
             className="rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             Donate
@@ -104,6 +104,9 @@ export function Navbar() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem render={<Link href="/profile" />}>
                     Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem render={<Link href="/profile/campaigns" />}>
+                    My campaigns
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={logout} variant="destructive">
                     <SignOut className="size-4" />

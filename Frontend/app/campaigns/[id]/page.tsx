@@ -6,6 +6,7 @@ import Image from "next/image";
 import { format } from "date-fns";
 import {
   ArrowRight,
+  ArrowUp,
   Heart,
   Spinner,
   Trash,
@@ -36,7 +37,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { FundCampaignModal } from "./fund-campaign-modal";
-import { EditCampaignModal } from "./edit-campaign-modal";
 
 /**
  * Campaign detail page — `/campaigns/[id]`.
@@ -58,7 +58,6 @@ export default function CampaignDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [fundOpen, setFundOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
 
   const campaignId = Number(id);
 
@@ -113,10 +112,20 @@ export default function CampaignDetailPage({
 
   const isOwner = user?.email === campaign.creatorEmail;
   const goal = campaign.goalAmount > 0 ? campaign.goalAmount : 1;
-  const pct = Math.min(
-    100,
-    Math.max(0, (campaign.totalCollected / goal) * 100),
-  );
+  // Raw progress — allowed past 100% when a campaign is overfunded, so the
+  // "% funded" line keeps climbing as donations keep arriving after the goal.
+  const pct = Math.max(0, (campaign.totalCollected / goal) * 100);
+  // The fill caps at a full bar (it can't overflow its track); only the
+  // percentage text above keeps moving.
+  const barWidth = Math.min(100, pct);
+  // Display-only: once an active campaign reaches its goal, present it as
+  // "completed" on the detail page. The stored status is unchanged (the
+  // backend keeps ACTIVE), and funding stays open so overfunding is still
+  // allowed.
+  const displayStatus =
+    campaign.status === "ACTIVE" && campaign.totalCollected >= goal
+      ? "completed"
+      : campaign.status;
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
@@ -152,13 +161,15 @@ export default function CampaignDetailPage({
                   {CATEGORY_LABELS[campaign.category] || campaign.category}
                 </Badge>
               )}
-              {campaign.status && (
+              {displayStatus && (
                 <Badge
                   variant={
-                    campaign.status === "ACTIVE" ? "default" : "secondary"
+                    displayStatus === "ACTIVE" || displayStatus === "completed"
+                      ? "default"
+                      : "secondary"
                   }
                 >
-                  {campaign.status.toLowerCase()}
+                  {displayStatus.toLowerCase()}
                 </Badge>
               )}
             </div>
@@ -205,13 +216,13 @@ export default function CampaignDetailPage({
                 <div
                   className="h-2.5 w-full rounded-full bg-muted"
                   role="progressbar"
-                  aria-valuenow={Math.round(pct)}
+                  aria-valuenow={Math.round(barWidth)}
                   aria-valuemin={0}
                   aria-valuemax={100}
                 >
                   <div
                     className="h-full rounded-full bg-primary transition-all"
-                    style={{ width: `${pct}%` }}
+                    style={{ width: `${barWidth}%` }}
                   />
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -244,43 +255,117 @@ export default function CampaignDetailPage({
             </CardContent>
           </Card>
 
-          {isOwner && (
-            <Card className="shadow-none">
-              <CardHeader>
-                <CardTitle>Creator actions</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                <Button
-                  variant="outline"
-                  className="w-full rounded-3xl"
-                  onClick={() => setEditOpen(true)}
-                >
-                  Edit fundraiser
-                </Button>
-                <EditCampaignModal
-                  key={editOpen ? "open" : "closed"}
-                  open={editOpen}
-                  onOpenChange={setEditOpen}
-                  campaign={campaign}
-                  onSaved={refreshCampaign}
-                />
-                <DeleteCampaignDialog
-                  campaignId={campaignId}
-                  title={campaign.title}
-                  available={campaign.availableBalance ?? 0}
-                  onDeleted={() => router.push("/campaigns")}
-                />
-                <WithdrawForm
-                  campaignId={campaignId}
-                  available={campaign.availableBalance ?? 0}
-                  onSuccess={refreshCampaign}
-                />
-              </CardContent>
-            </Card>
-          )}
-        </div>
+          </div>
       </div>
+
+      {isOwner && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>Manage fundraiser</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <Button
+                variant="outline"
+                className="w-full rounded-3xl"
+                onClick={() => router.push(`/campaigns/${campaignId}/edit`)}
+              >
+                Edit fundraiser
+              </Button>
+              <DeleteCampaignDialog
+                campaignId={campaignId}
+                title={campaign.title}
+                available={campaign.availableBalance ?? 0}
+                onDeleted={() => router.push("/campaigns")}
+              />
+              <WithdrawForm
+                campaignId={campaignId}
+                available={campaign.availableBalance ?? 0}
+                onSuccess={refreshCampaign}
+              />
+            </CardContent>
+          </Card>
+          <WithdrawalStatusCard
+            totalWithdrawn={campaign.totalWithdrawn ?? 0}
+            available={campaign.availableBalance ?? 0}
+          />
+        </div>
+      )}
     </main>
+  );
+}
+
+function WithdrawalStatusCard({
+  totalWithdrawn,
+  available,
+}: {
+  totalWithdrawn: number;
+  available: number;
+}) {
+  const nothingYet = totalWithdrawn <= 0 && available <= 0;
+  const raised = totalWithdrawn + available;
+  const withdrawnPct = raised > 0 ? (totalWithdrawn / raised) * 100 : 0;
+
+  return (
+    <Card className="relative overflow-hidden shadow-none">
+      {/* Soft amber accents to give the panel a bit of warmth */}
+      <div
+        className="pointer-events-none absolute -right-10 -top-10 size-36 rounded-full bg-primary/10"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -bottom-12 -left-8 size-28 rounded-full bg-primary/5"
+        aria-hidden="true"
+      />
+      <CardContent className="relative flex flex-col gap-5 pt-6">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+            <ArrowUp size={18} weight="duotone" />
+          </span>
+          <CardTitle>Withdrawal status</CardTitle>
+        </div>
+
+        {nothingYet ? (
+          <p className="py-2 text-sm text-muted-foreground">
+            Nothing withdrawn yet. Funds appear here as your campaign collects
+            donations.
+          </p>
+        ) : (
+          <>
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Left to withdraw
+                </p>
+                <p className="mt-1 font-heading text-3xl font-semibold text-primary">
+                  {formatMoney(available)}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Withdrawn
+                </p>
+                <p className="mt-1 font-heading text-xl font-medium text-foreground">
+                  {formatMoney(totalWithdrawn)}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${withdrawnPct}%` }}
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {Math.round(withdrawnPct)}% of raised funds withdrawn
+              </p>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -318,7 +403,7 @@ function WithdrawForm({
       setAmount("");
       setMessage({
         type: "success",
-        text: "Withdrawal request processed successfully.",
+        text: `${formatMoney(value)} moved out of your campaign.`,
       });
       await onSuccess();
     } catch (err) {
