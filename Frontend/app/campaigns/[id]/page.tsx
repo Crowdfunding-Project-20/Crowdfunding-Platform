@@ -4,7 +4,13 @@ import { use, useCallback, useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { format } from "date-fns";
-import { ArrowRight, Heart, Spinner, UserCircle } from "@phosphor-icons/react";
+import {
+  ArrowRight,
+  Heart,
+  Spinner,
+  Trash,
+  UserCircle,
+} from "@phosphor-icons/react";
 
 import { api, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/utils";
@@ -20,6 +26,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { FundCampaignModal } from "./fund-campaign-modal";
 import { EditCampaignModal } from "./edit-campaign-modal";
 
@@ -249,6 +264,12 @@ export default function CampaignDetailPage({
                   campaign={campaign}
                   onSaved={refreshCampaign}
                 />
+                <DeleteCampaignDialog
+                  campaignId={campaignId}
+                  title={campaign.title}
+                  available={campaign.availableBalance ?? 0}
+                  onDeleted={() => router.push("/campaigns")}
+                />
                 <WithdrawForm
                   campaignId={campaignId}
                   available={campaign.availableBalance ?? 0}
@@ -352,6 +373,106 @@ function WithdrawForm({
         {withdrawing ? <Spinner className="size-4" /> : "Withdraw funds"}
       </Button>
     </form>
+  );
+}
+
+function DeleteCampaignDialog({
+  campaignId,
+  title,
+  available,
+  onDeleted,
+}: {
+  campaignId: number;
+  title: string;
+  available: number;
+  onDeleted: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleDelete() {
+    setDeleting(true);
+    setError(null);
+    try {
+      await api.del(`/api/campaigns/${campaignId}`);
+      setOpen(false);
+      onDeleted();
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Something went wrong. Try again.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="destructive"
+        className="w-full rounded-3xl"
+        onClick={() => {
+          setError(null);
+          setOpen(true);
+        }}
+      >
+        <Trash size={16} />
+        Delete campaign
+      </Button>
+
+      <AlertDialog
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          if (!o) setError(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this campaign?</AlertDialogTitle>
+            <AlertDialogDescription>
+              &ldquo;{title}&rdquo; will be removed and can&apos;t be brought
+              back.
+              {available > 0 && (
+                <span className="mt-1 block">
+                  You have {formatMoney(available)} available — withdraw it
+                  before deleting.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {error && (
+            <p className="text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleting}
+              onClick={handleDelete}
+            >
+              {deleting ? (
+                <>
+                  <Spinner className="size-4 animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                "Delete campaign"
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
