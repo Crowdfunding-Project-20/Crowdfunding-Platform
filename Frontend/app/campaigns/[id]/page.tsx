@@ -395,7 +395,7 @@ function DeleteCampaignDialog({
     setDeleting(true);
     setError(null);
     try {
-      await api.del(`/api/campaigns/${campaignId}`);
+      await api.delete(`/api/campaigns/${campaignId}`);
       setOpen(false);
       onDeleted();
     } catch (err) {
