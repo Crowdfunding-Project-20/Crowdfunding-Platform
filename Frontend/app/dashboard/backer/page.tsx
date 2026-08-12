@@ -88,6 +88,16 @@ export default function BackerDashboardPage() {
     return () => controller.abort();
   }, [ready, reloadKey]);
 
+  // useMemo must stay above every early return — calling it after one of the
+  // returns below would change the hook count between renders (Rules of Hooks).
+  const series = useMemo(
+    () =>
+      toCumulativeDailySeries(
+        (donations ?? []).map((d) => ({ date: d.createdAt, amount: d.amount })),
+      ),
+    [donations],
+  );
+
   if (!ready) return <DashboardSkeleton />;
   if (error) return <DashboardError onRetry={retry} />;
   if (donations === null) return <DashboardSkeleton />;
@@ -95,13 +105,6 @@ export default function BackerDashboardPage() {
   const metrics = deriveBackerMetrics(donations);
   const titles = buildCampaignTitleMap(campaigns);
   const history = sortByNewest(donations);
-  const series = useMemo(
-    () =>
-      toCumulativeDailySeries(
-        donations.map((d) => ({ date: d.createdAt, amount: d.amount })),
-      ),
-    [donations],
-  );
 
   return (
     <div className="flex flex-col gap-4">
