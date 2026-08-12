@@ -14,7 +14,9 @@ import gsap from "gsap";
  *
  * One looping tween drives a single `rot` value (0 → 2π); `onUpdate`
  * repositions every card via cos/sin + a depth term for scale/opacity/zIndex.
- * Pauses on hover, resizes with the viewport, and cleans itself up on unmount.
+ * Pauses on pointer hover and on keyboard focus, honors `prefers-reduced-motion`
+ * (rendering a static belt frame), resizes with the viewport, and cleans itself
+ * up on unmount.
  */
 
 const IMAGES = [
@@ -48,7 +50,10 @@ export function HappyCarousel() {
     // Ellipse radii derived from the stage so the belt rescales with the viewport.
     const measure = () => {
       const r = stage.getBoundingClientRect();
-      return { a: r.width * 0.42, b: r.height * 0.18 };
+      // Flatter, wider spread on narrow screens so the front cards breathe
+      // instead of piling up on a phone.
+      const a = r.width * (r.width < 480 ? 0.46 : 0.42);
+      return { a, b: r.height * 0.18 };
     };
 
     let { a, b } = measure();
@@ -69,6 +74,24 @@ export function HappyCarousel() {
 
     const state = { rot: 0 };
 
+    position(0);
+
+    // Reposition on resize in every path — the static belt still re-measures.
+    const onResize = () => {
+      ({ a, b } = measure());
+      position(state.rot);
+    };
+    window.addEventListener("resize", onResize);
+
+    const reduceMotion =
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Reduced-motion users get the belt as a single static frame: positioned
+    // once above, never animated, and no pause controls to wire up.
+    if (reduceMotion) {
+      return () => window.removeEventListener("resize", onResize);
+    }
+
     const tween = gsap.to(state, {
       rot: Math.PI * 2,
       duration: 24,
@@ -77,33 +100,51 @@ export function HappyCarousel() {
       onUpdate: () => position(state.rot),
     });
 
-    position(0);
-
-    // Pause on hover, resume on leave.
-    const onEnter = () => tween.pause();
-    const onLeave = () => tween.resume();
+    // Pause on pointer hover AND on keyboard focus; resume only once both
+    // conditions have cleared. Making the belt keyboard-reachable lets anyone
+    // stop the loop (WCAG 2.2.2 — auto-moving content must be pausable).
+    let focusPaused = false;
+    let hoverPaused = false;
+    const sync = () =>
+      focusPaused || hoverPaused ? tween.pause() : tween.resume();
+    const onEnter = () => {
+      hoverPaused = true;
+      sync();
+    };
+    const onLeave = () => {
+      hoverPaused = false;
+      sync();
+    };
+    const onFocusIn = () => {
+      focusPaused = true;
+      sync();
+    };
+    const onFocusOut = () => {
+      focusPaused = false;
+      sync();
+    };
     stage.addEventListener("mouseenter", onEnter);
     stage.addEventListener("mouseleave", onLeave);
-
-    // Recompute radii on resize and reposition immediately.
-    const onResize = () => {
-      ({ a, b } = measure());
-      position(state.rot);
-    };
-    window.addEventListener("resize", onResize);
+    stage.addEventListener("focusin", onFocusIn);
+    stage.addEventListener("focusout", onFocusOut);
 
     return () => {
       tween.kill();
       stage.removeEventListener("mouseenter", onEnter);
       stage.removeEventListener("mouseleave", onLeave);
+      stage.removeEventListener("focusin", onFocusIn);
+      stage.removeEventListener("focusout", onFocusOut);
       window.removeEventListener("resize", onResize);
     };
   }, []);
 
+  // The belt is decorative (empty-alt images) but auto-moving, so it gets a
+  // keyboard focus target: tabbing to it pauses the loop (see the effect above).
   return (
     <section
       aria-label="Community highlights"
-      className="relative h-[66vh] w-full overflow-hidden"
+      tabIndex={0}
+      className="relative h-[66vh] w-full overflow-hidden focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
     >
       <div ref={containerRef} className="absolute inset-0">
         {IMAGES.map((src, i) => (
@@ -122,7 +163,7 @@ export function HappyCarousel() {
                 width={220}
                 height={300}
                 priority={i < 2}
-                className="h-[260px] w-[190px] object-cover sm:h-[300px] sm:w-[220px]"
+                className="h-[220px] w-[150px] object-cover sm:h-[300px] sm:w-[220px]"
               />
             </div>
           </div>

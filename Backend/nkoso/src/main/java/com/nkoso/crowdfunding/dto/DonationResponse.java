@@ -10,17 +10,22 @@ public class DonationResponse {
     private BigDecimal amount;
     private BigDecimal feePercentSnapshot;
     private LocalDateTime createdAt;
+    private String backerUsername;
+    private boolean anonymous;
 
     public DonationResponse() {
     }
 
     public DonationResponse(Long id, Long campaignId, BigDecimal amount,
-                            BigDecimal feePercentSnapshot, LocalDateTime createdAt) {
+                            BigDecimal feePercentSnapshot, LocalDateTime createdAt,
+                            String backerUsername, boolean anonymous) {
         this.id = id;
         this.campaignId = campaignId;
         this.amount = amount;
         this.feePercentSnapshot = feePercentSnapshot;
         this.createdAt = createdAt;
+        this.backerUsername = backerUsername;
+        this.anonymous = anonymous;
     }
 
     public Long getId() {
@@ -61,6 +66,22 @@ public class DonationResponse {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getBackerUsername() {
+        return backerUsername;
+    }
+
+    public void setBackerUsername(String backerUsername) {
+        this.backerUsername = backerUsername;
+    }
+
+    public boolean isAnonymous() {
+        return anonymous;
+    }
+
+    public void setAnonymous(boolean anonymous) {
+        this.anonymous = anonymous;
     }
 
 }

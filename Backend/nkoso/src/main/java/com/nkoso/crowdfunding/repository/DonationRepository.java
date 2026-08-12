@@ -11,6 +11,8 @@ public interface DonationRepository extends JpaRepository<Donation, Long> {
 
     List<Donation> findByCampaignId(Long campaignId);
 
+    List<Donation> findByCampaignIdOrderByTimestampDesc(Long campaignId);
+
     List<Donation> findByBackerId(Long backerId);
 
     @Query("SELECT d FROM Donation d WHERE d.campaign.id IN :campaignIds ORDER BY d.timestamp DESC")

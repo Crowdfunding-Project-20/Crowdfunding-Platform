@@ -2,11 +2,13 @@ package com.nkoso.crowdfunding.controller;
 
 import com.nkoso.crowdfunding.dto.CampaignRequest;
 import com.nkoso.crowdfunding.dto.CampaignResponse;
+import com.nkoso.crowdfunding.dto.DonationResponse;
 import com.nkoso.crowdfunding.dto.WithdrawRequest;
 import com.nkoso.crowdfunding.entity.User;
 import com.nkoso.crowdfunding.exception.ResourceNotFoundException;
 import com.nkoso.crowdfunding.repository.UserRepository;
 import com.nkoso.crowdfunding.service.CampaignService;
+import com.nkoso.crowdfunding.service.DonationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -32,11 +34,14 @@ import java.util.Map;
 public class CampaignController {
 
     private final CampaignService campaignService;
+    private final DonationService donationService;
     private final UserRepository userRepository;
 
     public CampaignController(CampaignService campaignService,
+                              DonationService donationService,
                               UserRepository userRepository) {
         this.campaignService = campaignService;
+        this.donationService = donationService;
         this.userRepository = userRepository;
     }
 
@@ -52,6 +57,13 @@ public class CampaignController {
     @Operation(summary = "Get campaign by ID", description = "Get a single campaign's details (public).")
     public ResponseEntity<CampaignResponse> getCampaignById(@PathVariable Long id) {
         return ResponseEntity.ok(campaignService.getCampaignById(id));
+    }
+
+    @GetMapping("/{id}/donations")
+    @PreAuthorize("permitAll()")
+    @Operation(summary = "List public backers", description = "Get all donations for a campaign (public), newest first. Anonymous donations appear with no backer name.")
+    public ResponseEntity<List<DonationResponse>> getCampaignDonations(@PathVariable Long id) {
+        return ResponseEntity.ok(donationService.getPublicDonationsForCampaign(id));
     }
 
     @PostMapping

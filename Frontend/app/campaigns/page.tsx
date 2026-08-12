@@ -98,6 +98,7 @@ export default function BrowseCampaignsPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by title or description"
+              aria-label="Search fundraisers"
               className="h-12 w-full rounded-3xl bg-card pl-11 text-base shadow-sm sm:h-14 sm:text-lg"
             />
           </div>
@@ -113,7 +114,8 @@ export default function BrowseCampaignsPage() {
               variant={activeCategory === "ALL" ? "default" : "outline"}
               size="sm"
               onClick={() => setActiveCategory("ALL")}
-              className="shrink-0 rounded-full"
+              aria-pressed={activeCategory === "ALL"}
+              className="min-h-11 shrink-0 rounded-full px-4"
             >
               All
             </Button>
@@ -123,7 +125,8 @@ export default function BrowseCampaignsPage() {
                 variant={activeCategory === cat ? "default" : "outline"}
                 size="sm"
                 onClick={() => setActiveCategory(cat)}
-                className="shrink-0 rounded-full"
+                aria-pressed={activeCategory === cat}
+                className="min-h-11 shrink-0 rounded-full px-4"
               >
                 {CATEGORY_LABELS[cat]}
               </Button>

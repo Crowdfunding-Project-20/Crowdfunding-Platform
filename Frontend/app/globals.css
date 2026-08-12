@@ -138,6 +138,13 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
   }
+  /* Smooth in-page anchor jumps (used by the /about subnav), off for
+     prefers-reduced-motion users. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
 }
 
 /* Glassmorphism surface — semi-transparent fill + backdrop blur + hairline border.

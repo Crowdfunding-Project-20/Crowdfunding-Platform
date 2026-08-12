@@ -136,6 +136,7 @@ export function CampaignCard({
         <div
           className="mt-1 h-1.5 w-full rounded-full bg-muted"
           role="progressbar"
+          aria-label={`${title}: ${Math.round(barWidth)}% of ${formatMoney(goalAmount)} raised`}
           aria-valuenow={Math.round(barWidth)}
           aria-valuemin={0}
           aria-valuemax={100}

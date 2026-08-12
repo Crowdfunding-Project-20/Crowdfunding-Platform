@@ -38,7 +38,7 @@ export function ThemeToggle() {
   }
 
   if (isDark === null) {
-    return <div className="size-9" aria-hidden="true" />;
+    return <div className="size-11" aria-hidden="true" />;
   }
 
   return (
@@ -46,7 +46,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={toggle}
-      className="size-9 rounded-full"
+      className="size-11 rounded-full"
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
       {isDark ? <Moon className="size-5" /> : <Sun className="size-5" />}

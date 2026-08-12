@@ -43,6 +43,7 @@ public class DonationService {
         donation.setBacker(backer);
         donation.setAmount(request.getAmount());
         donation.setFeePercentSnapshot(settings.getFeePercent());
+        donation.setAnonymous(request.getAnonymous() != null && request.getAnonymous());
 
         donation = donationRepository.save(donation);
 
@@ -60,13 +61,44 @@ public class DonationService {
                 .toList();
     }
 
+    /**
+     * Public backer list for a campaign. Every donation appears here (newest
+     * first), but anonymous donations have their attribution stripped — the
+     * amount still shows, only the backer's name is hidden (rendered as
+     * "Anonymous" by the frontend).
+     */
+    @Transactional(readOnly = true)
+    public List<DonationResponse> getPublicDonationsForCampaign(Long campaignId) {
+        Campaign campaign = campaignRepository.findById(campaignId)
+                .orElseThrow(() -> new ResourceNotFoundException("Campaign not found with id: " + campaignId));
+
+        if (campaign.getStatus() == Campaign.CampaignStatus.DELETED) {
+            throw new ResourceNotFoundException("Campaign not found with id: " + campaignId);
+        }
+
+        return donationRepository.findByCampaignIdOrderByTimestampDesc(campaignId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
     private DonationResponse mapToResponse(Donation donation) {
+        User backer = donation.getBacker();
+        // Anonymous donors' names are never exposed — the frontend shows
+        // "Anonymous" instead. The amount and the anonymous flag still come back.
+        String username = donation.isAnonymous()
+                ? null
+                : (backer.getUsername() != null
+                        ? backer.getUsername()
+                        : backer.getEmail().split("@")[0]);
         return new DonationResponse(
                 donation.getId(),
                 donation.getCampaign().getId(),
                 donation.getAmount(),
                 donation.getFeePercentSnapshot(),
-                donation.getTimestamp()
+                donation.getTimestamp(),
+                username,
+                donation.isAnonymous()
         );
     }
 

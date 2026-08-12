@@ -1,12 +1,6 @@
 import { Heart } from "@phosphor-icons/react/dist/ssr";
 
-const GROUP_MEMBERS = [
-  "Zita Adinkrah",
-  "Annie Gamadi",
-  "Vida Kwegyireba",
-  "Andrea Qua-Enoo",
-  "Yaa Konadu",
-];
+import { TEAM } from "@/lib/team";
 
 /**
  * Site-wide footer.
@@ -26,12 +20,12 @@ export function Footer() {
           </h2>
 
           <ul className="flex flex-wrap justify-center gap-x-4 gap-y-2 sm:gap-x-8">
-            {GROUP_MEMBERS.map((name) => (
+            {TEAM.map((member) => (
               <li
-                key={name}
+                key={member.name}
                 className="text-base sm:text-lg text-muted-foreground transition-colors hover:text-foreground"
               >
-                {name}
+                {member.name}
               </li>
             ))}
           </ul>

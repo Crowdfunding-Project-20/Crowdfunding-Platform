@@ -6,7 +6,6 @@ import { ArrowRight } from "@phosphor-icons/react";
 
 import { api } from "@/lib/api";
 import { CampaignCard, type Campaign } from "@/components/campaign-card";
-import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * DiscoverCampaigns — homepage section showing a bento grid of active
@@ -21,7 +20,6 @@ import { useAuth } from "@/contexts/AuthContext";
  */
 
 export function DiscoverCampaigns() {
-  const { user, loading } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
   const [error, setError] = useState(false);
 
@@ -58,8 +56,8 @@ export function DiscoverCampaigns() {
             </p>
           </div>
           <Link
-            href={loading ? "/campaigns" : user ? "/campaigns" : "/login"}
-            className="inline-flex items-center gap-1.5 self-start rounded-full px-3 py-2 text-sm font-medium text-primary transition-colors hover:text-primary/80 sm:self-auto"
+            href="/campaigns"
+            className="inline-flex min-h-11 items-center gap-1.5 self-start rounded-full px-3 py-2 text-sm font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30 sm:self-auto"
           >
             See all
             <ArrowRight weight="bold" className="size-3.5" />
@@ -93,8 +91,15 @@ function Bento({ campaigns }: { campaigns: Campaign[] }) {
         featured
         className="col-span-2 row-span-2"
       />
-      {rest.map((c) => (
-        <CampaignCard key={c.id} campaign={c} />
+      {rest.map((c, i) => (
+        <CampaignCard
+          key={c.id}
+          campaign={c}
+          // The last tile spans full width on the 2-col mobile grid so the
+          // bento ends on a clean row instead of a lone sliver; on md it goes
+          // back to a single 1x1 tile to keep the 3x3 composition.
+          className={i === rest.length - 1 ? "col-span-2 md:col-span-1" : undefined}
+        />
       ))}
     </div>
   );

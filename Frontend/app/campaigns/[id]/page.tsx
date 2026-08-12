@@ -47,15 +47,17 @@ import { FundCampaignModal } from "./fund-campaign-modal";
  * Anonymous visitors can view everything; the donation action forces login.
  */
 
-/** A donation as returned by the public backers endpoint. Anonymous donations
- * never appear here — the backend strips them from this list entirely. */
+/** A donation as returned by the public backers endpoint. Every donation
+ * appears here (newest first); anonymous ones come back with no
+ * `backerUsername` and `anonymous: true`, so the card renders them as
+ * "Anonymous". */
 type BackerDonation = {
   id: number;
   campaignId: number;
   amount: number;
   feePercentSnapshot: number;
   createdAt: string;
-  backerUsername: string;
+  backerUsername: string | null;
   anonymous: boolean;
 };
 
@@ -182,7 +184,7 @@ export default function CampaignDetailPage({
         {campaign.imageUrl ? (
           <Image
             src={campaign.imageUrl}
-            alt={campaign.title}
+            alt=""
             fill
             unoptimized
             className="object-cover"
@@ -264,6 +266,7 @@ export default function CampaignDetailPage({
                 <div
                   className="h-2.5 w-full rounded-full bg-muted"
                   role="progressbar"
+                  aria-label={`${campaign.title} funding progress`}
                   aria-valuenow={Math.round(barWidth)}
                   aria-valuemin={0}
                   aria-valuemax={100}
@@ -328,6 +331,7 @@ export default function CampaignDetailPage({
               />
               <WithdrawForm
                 campaignId={campaignId}
+                campaignTitle={campaign.title}
                 available={campaign.availableBalance ?? 0}
                 onSuccess={refreshCampaign}
               />
@@ -342,7 +346,6 @@ export default function CampaignDetailPage({
 
       <BackersSection
         donors={donors}
-        totalCollected={campaign.totalCollected}
         onFund={handleOpenFund}
       />
     </main>
@@ -378,11 +381,24 @@ function timeAgo(iso: string) {
 
 function DonorMedallion({
   username,
+  anonymous = false,
   className = "size-9 text-sm",
 }: {
-  username: string;
+  username?: string | null;
+  anonymous?: boolean;
   className?: string;
 }) {
+  // Anonymous donors get a neutral "users" medallion instead of a name initial.
+  if (anonymous || !username) {
+    return (
+      <span
+        className={`flex shrink-0 items-center justify-center rounded-full bg-stone-200 text-stone-600 dark:bg-stone-700 dark:text-stone-300 ${className}`}
+        aria-label="Anonymous donor"
+      >
+        <Users size="1em" weight="duotone" />
+      </span>
+    );
+  }
   return (
     <span
       className={`flex shrink-0 items-center justify-center rounded-full font-medium ${donorColor(
@@ -394,13 +410,16 @@ function DonorMedallion({
   );
 }
 
+/** Display name for a backer — anonymous donors render as "Anonymous". */
+function backerLabel(d: BackerDonation) {
+  return d.anonymous || !d.backerUsername ? "Anonymous" : d.backerUsername;
+}
+
 function BackersSection({
   donors,
-  totalCollected,
   onFund,
 }: {
   donors: BackerDonation[] | null;
-  totalCollected: number;
   onFund: () => void;
 }) {
   const list = donors ?? [];
@@ -467,21 +486,21 @@ function BackersSection({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 divide-x divide-border/60 rounded-2xl border border-primary/10 bg-primary/5 text-center">
-              <div className="px-4 py-3">
-                <p className="font-heading text-2xl font-semibold text-foreground">
+            <div className="grid min-w-0 grid-cols-3 divide-x divide-border/60 rounded-2xl border border-primary/10 bg-primary/5 text-center">
+              <div className="min-w-0 px-2 py-3 sm:px-4">
+                <p className="font-heading text-lg font-semibold leading-tight text-foreground sm:text-2xl">
                   {donors.length}
                 </p>
                 <p className="text-xs text-muted-foreground">backers</p>
               </div>
-              <div className="px-4 py-3">
-                <p className="font-heading text-2xl font-semibold text-foreground">
+              <div className="min-w-0 px-2 py-3 sm:px-4">
+                <p className="font-heading text-lg font-semibold leading-tight text-foreground sm:text-2xl">
                   {formatMoney(total)}
                 </p>
                 <p className="text-xs text-muted-foreground">raised from backers</p>
               </div>
-              <div className="px-4 py-3">
-                <p className="font-heading text-2xl font-semibold text-foreground">
+              <div className="min-w-0 px-2 py-3 sm:px-4">
+                <p className="font-heading text-lg font-semibold leading-tight text-foreground sm:text-2xl">
                   {top ? formatMoney(top.amount) : "—"}
                 </p>
                 <p className="text-xs text-muted-foreground">biggest gift</p>
@@ -493,6 +512,7 @@ function BackersSection({
                 <div className="flex items-center gap-3">
                   <DonorMedallion
                     username={top.backerUsername}
+                    anonymous={top.anonymous}
                     className="size-14 text-xl"
                   />
                   <div className="flex flex-col gap-0.5">
@@ -501,7 +521,7 @@ function BackersSection({
                       Biggest backer
                     </span>
                     <span className="font-heading text-xl font-medium text-foreground">
-                      {top.backerUsername}
+                      {backerLabel(top)}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {timeAgo(top.createdAt)}
@@ -523,10 +543,13 @@ function BackersSection({
               <ul className="flex flex-col divide-y divide-border/60">
                 {wall.map((d) => (
                   <li key={d.id} className="flex items-center gap-3 py-3">
-                    <DonorMedallion username={d.backerUsername} />
+                    <DonorMedallion
+                      username={d.backerUsername}
+                      anonymous={d.anonymous}
+                    />
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-sm font-medium text-foreground">
-                        {d.backerUsername}
+                        {backerLabel(d)}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {timeAgo(d.createdAt)}
@@ -538,13 +561,6 @@ function BackersSection({
                   </li>
                 ))}
               </ul>
-            )}
-
-            {total < totalCollected && (
-              <p className="text-center text-xs text-muted-foreground">
-                Some supporters chose to give anonymously — their names
-                don&apos;t appear here.
-              </p>
             )}
           </>
         )}
@@ -629,21 +645,28 @@ function WithdrawalStatusCard({
 
 function WithdrawForm({
   campaignId,
+  campaignTitle,
   available,
   onSuccess,
 }: {
   campaignId: number;
+  campaignTitle: string;
   available: number;
   onSuccess: () => void;
 }) {
   const [amount, setAmount] = useState("");
   const [withdrawing, setWithdrawing] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  async function handleWithdraw(e: FormEvent) {
+  const value = Number(amount);
+
+  // Pass 1 — validate first (inline, without a dialog), then ask for confirmation.
+  // Withdrawing moves real money, so it gets the same confirm-facing treatment
+  // as delete instead of posting on the first click.
+  function requestWithdraw(e: FormEvent) {
     e.preventDefault();
     setMessage(null);
-    const value = Number(amount);
     if (!amount || !Number.isFinite(value) || value <= 0) {
       setMessage({ type: "error", text: "Enter an amount greater than zero." });
       return;
@@ -655,9 +678,15 @@ function WithdrawForm({
       });
       return;
     }
+    setConfirmOpen(true);
+  }
+
+  // Pass 2 — the user confirmed the amount in the dialog; move the money.
+  async function confirmWithdraw() {
     setWithdrawing(true);
     try {
       await api.post(`/api/campaigns/${campaignId}/withdraw`, { amount: value });
+      setConfirmOpen(false);
       setAmount("");
       setMessage({
         type: "success",
@@ -665,6 +694,7 @@ function WithdrawForm({
       });
       await onSuccess();
     } catch (err) {
+      setConfirmOpen(false);
       setMessage({
         type: "error",
         text:
@@ -678,44 +708,79 @@ function WithdrawForm({
   }
 
   return (
-    <form onSubmit={handleWithdraw} className="flex flex-col gap-3">
-      {message && (
-        <Alert variant={message.type === "error" ? "destructive" : "default"}>
-          <AlertTitle>
-            {message.type === "success" ? "Withdrawal successful" : "Withdrawal failed"}
-          </AlertTitle>
-          <AlertDescription>{message.text}</AlertDescription>
-        </Alert>
-      )}
-      <div className="relative">
-        <span
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-medium text-muted-foreground"
-          aria-hidden="true"
-        >
-          GH₵
-        </span>
-        <Input
-          type="number"
-          inputMode="decimal"
-          min="0.01"
-          step="any"
-          max={available}
-          placeholder="Withdraw amount"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+    <>
+      <form onSubmit={requestWithdraw} className="flex flex-col gap-3">
+        {message && (
+          <Alert variant={message.type === "error" ? "destructive" : "default"}>
+            <AlertTitle>
+              {message.type === "success" ? "Withdrawal successful" : "Withdrawal failed"}
+            </AlertTitle>
+            <AlertDescription>{message.text}</AlertDescription>
+          </Alert>
+        )}
+        <div className="relative">
+          <span
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-medium text-muted-foreground"
+            aria-hidden="true"
+          >
+            GH₵
+          </span>
+          <Input
+            type="number"
+            inputMode="decimal"
+            min="0.01"
+            step="any"
+            max={available}
+            placeholder="Withdraw amount"
+            aria-label="Withdraw amount"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            disabled={withdrawing}
+            className="h-10 rounded-3xl pl-12"
+          />
+        </div>
+        <Button
+          type="submit"
           disabled={withdrawing}
-          className="h-10 rounded-3xl pl-12"
-        />
-      </div>
-      <Button
-        type="submit"
-        variant="outline"
-        disabled={withdrawing}
-        className="w-full rounded-3xl"
+          className="w-full rounded-3xl"
+        >
+          {withdrawing ? <Spinner className="size-4" /> : "Withdraw funds"}
+        </Button>
+      </form>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(o) => {
+          setConfirmOpen(o);
+          if (!o) setMessage(null);
+        }}
       >
-        {withdrawing ? <Spinner className="size-4" /> : "Withdraw funds"}
-      </Button>
-    </form>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Withdraw {formatMoney(value)}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Move {formatMoney(value)} out of &ldquo;{campaignTitle}&rdquo;.{" "}
+              {formatMoney(Math.max(0, available - value))} will remain
+              available to this campaign.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={withdrawing}>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              disabled={withdrawing}
+              onClick={confirmWithdraw}
+            >
+              {withdrawing ? (
+                <Spinner className="size-4" />
+              ) : (
+                "Confirm withdrawal"
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -800,7 +865,7 @@ function DeleteCampaignDialog({
             <Button
               type="button"
               variant="destructive"
-              disabled={deleting}
+              disabled={deleting || available > 0}
               onClick={handleDelete}
             >
               {deleting ? (
@@ -808,6 +873,8 @@ function DeleteCampaignDialog({
                   <Spinner className="size-4 animate-spin" />
                   Deleting…
                 </>
+              ) : available > 0 ? (
+                "Withdraw funds first"
               ) : (
                 "Delete campaign"
               )}

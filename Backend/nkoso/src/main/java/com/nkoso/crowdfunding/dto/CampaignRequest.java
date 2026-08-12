@@ -6,15 +6,19 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 @Schema(description = "Campaign creation/update request payload")
 public class CampaignRequest {
 
     @NotBlank(message = "Title is required")
+    @Size(min = 5, max = 100, message = "Title must be between 5 and 100 characters")
     @Schema(description = "Campaign title", example = "Help build a community garden")
     private String title;
 
+    @NotBlank(message = "Description is required")
+    @Size(max = 2000, message = "Description must be at most 2000 characters")
     @Schema(description = "Campaign description", example = "We're raising funds to build a community garden in the city center...")
     private String description;
 

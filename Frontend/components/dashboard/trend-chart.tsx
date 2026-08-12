@@ -46,7 +46,12 @@ export function TrendChart({
   className?: string;
 }) {
   return (
-    <ChartContainer config={chartConfig} className={className ?? "h-[240px] w-full"}>
+    <ChartContainer
+      config={chartConfig}
+      role="img"
+      aria-label="Amount raised over time"
+      className={className ?? "h-[240px] w-full"}
+    >
       <AreaChart data={data} margin={{ left: 4, right: 8, top: 8, bottom: 0 }}>
         <defs>
           <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">

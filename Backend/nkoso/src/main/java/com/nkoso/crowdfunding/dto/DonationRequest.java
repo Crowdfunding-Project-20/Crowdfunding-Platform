@@ -19,6 +19,9 @@ public class DonationRequest {
     @Schema(description = "Donation amount", example = "50.00")
     private BigDecimal amount;
 
+    @Schema(description = "Hide the backer's identity from the public backer list", example = "false", defaultValue = "false")
+    private Boolean anonymous;
+
     public DonationRequest() {
     }
 
@@ -41,6 +44,14 @@ public class DonationRequest {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public Boolean getAnonymous() {
+        return anonymous;
+    }
+
+    public void setAnonymous(Boolean anonymous) {
+        this.anonymous = anonymous;
     }
 
 }

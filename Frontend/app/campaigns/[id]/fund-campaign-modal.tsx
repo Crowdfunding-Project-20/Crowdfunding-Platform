@@ -177,8 +177,9 @@ export function FundCampaignModal({
                       key={p}
                       type="button"
                       onClick={() => setAmount(String(p))}
+                      aria-pressed={selected}
                       className={cn(
-                        "rounded-full border border-transparent bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800",
+                        "min-h-11 rounded-full border border-transparent bg-amber-50 px-4 text-sm font-medium text-amber-800",
                         selected && "border-2 border-amber-600"
                       )}
                     >
@@ -300,7 +301,7 @@ export function FundCampaignModal({
                 <button
                   type="button"
                   onClick={handleCopyReference}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                  className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-primary/10 px-4 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
                 >
                   {copied ? (
                     <Check size={13} weight="bold" />

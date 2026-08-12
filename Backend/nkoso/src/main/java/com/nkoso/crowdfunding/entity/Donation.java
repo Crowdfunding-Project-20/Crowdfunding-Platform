@@ -29,6 +29,11 @@ public class Donation {
     @Column(nullable = false)
     private LocalDateTime timestamp;
 
+    // Whether to hide the backer's identity from the public backer list.
+    // The column default keeps existing rows safe under ddl-auto=update.
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean anonymous;
+
     @PrePersist
     protected void onCreate() {
         if (timestamp == null) {
@@ -55,5 +60,8 @@ public class Donation {
 
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+
+    public boolean isAnonymous() { return anonymous; }
+    public void setAnonymous(boolean anonymous) { this.anonymous = anonymous; }
 
 }
