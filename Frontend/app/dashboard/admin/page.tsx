@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Buildings, Coins, Receipt, Users } from "@phosphor-icons/react";
+import { Buildings, Receipt, TrendUp, Users } from "@phosphor-icons/react";
 
 import { api } from "@/lib/api";
 import { formatMoney } from "@/lib/utils";
@@ -81,6 +81,8 @@ export default function AdminDashboardPage() {
     stats.totalPlatformRaised > 0
       ? (stats.totalFeesCollected / stats.totalPlatformRaised) * 100
       : 0;
+  const avgPerCampaign =
+    stats.totalCampaigns > 0 ? stats.totalPlatformRaised / stats.totalCampaigns : 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -103,9 +105,9 @@ export default function AdminDashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Total raised"
-          value={formatMoney(stats.totalPlatformRaised)}
-          icon={<Coins className="size-4" />}
+          label="Avg. per campaign"
+          value={formatMoney(avgPerCampaign)}
+          icon={<TrendUp className="size-4" />}
         />
         <StatCard
           label="Fees collected"

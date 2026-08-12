@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 /**
  * Loading / error / empty states shared by the three dashboards.
  *
- * The existing pages define these locally per file, which is right when each is
- * shaped differently. All three dashboards share one layout (hero, tile row,
- * panel), so they share these instead of triplicating them.
+ * All three dashboards share one layout (hero, tile row, panel), so these
+ * states are shared here via `DashboardPanel` / `DashboardSkeleton` /
+ * `DashboardError` / `DashboardEmpty` rather than triplicated per page.
  */
 
 /** Mirrors the real layout so the page doesn't reflow when data lands. */

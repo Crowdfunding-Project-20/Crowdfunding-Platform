@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Coins, Users, Megaphone, ArrowUp } from "@phosphor-icons/react";
 
@@ -93,7 +93,10 @@ export default function CreatorDashboardPage() {
   if (error) return <DashboardError onRetry={retry} />;
   if (stats === null) return <DashboardSkeleton />;
 
-  const series = toCumulativeDailySeries(stats.recentDonations ?? []);
+  const series = useMemo(
+    () => toCumulativeDailySeries(stats.recentDonations ?? []),
+    [stats],
+  );
   const hasWithdrawable = campaigns.some((c) => (c.availableBalance ?? 0) > 0);
 
   return (
@@ -228,16 +231,16 @@ export default function CreatorDashboardPage() {
                               {campaign.title}
                             </Link>
                             {met ? (
-                              <Badge
-                                variant="secondary"
-                                className="w-fit bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-200"
-                              >
+                              <Badge variant="success" className="w-fit">
                                 Goal met
                               </Badge>
                             ) : null}
                           </div>
                         </TableCell>
                         <TableCell>
+                          {/* aria-valuenow is clamped to 100 (the bar can't
+                              overflow its track) while the visible % text below
+                              keeps climbing — intentional for overfunded goals. */}
                           <div
                             className="h-1.5 w-full rounded-full bg-muted"
                             role="progressbar"

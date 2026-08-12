@@ -33,9 +33,9 @@ export function HeroCard({
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-1">
           <span className="text-sm text-primary-foreground/80">{label}</span>
-          <span className="font-heading text-4xl font-medium tracking-tight sm:text-5xl">
+          <span className="break-words font-heading text-4xl font-medium tracking-tight tabular-nums sm:text-5xl">
             {value}
           </span>
           {meta ? (

@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { HandHeart, Heart, Receipt, TrendUp } from "@phosphor-icons/react";
+import { Clock, HandHeart, Receipt, TrendUp } from "@phosphor-icons/react";
 
 import { api } from "@/lib/api";
 import { formatMoney } from "@/lib/utils";
@@ -95,8 +95,12 @@ export default function BackerDashboardPage() {
   const metrics = deriveBackerMetrics(donations);
   const titles = buildCampaignTitleMap(campaigns);
   const history = sortByNewest(donations);
-  const series = toCumulativeDailySeries(
-    donations.map((d) => ({ date: d.createdAt, amount: d.amount })),
+  const series = useMemo(
+    () =>
+      toCumulativeDailySeries(
+        donations.map((d) => ({ date: d.createdAt, amount: d.amount })),
+      ),
+    [donations],
   );
 
   return (
@@ -146,9 +150,13 @@ export default function BackerDashboardPage() {
           icon={<TrendUp className="size-4" />}
         />
         <StatCard
-          label="Total given"
-          value={formatMoney(metrics.totalGiven)}
-          icon={<Heart className="size-4" />}
+          label="Last gift"
+          value={
+            metrics.lastDonationAt
+              ? format(parseISO(metrics.lastDonationAt), "d MMM yyyy")
+              : "No gifts yet"
+          }
+          icon={<Clock className="size-4" />}
         />
       </div>
 
@@ -169,7 +177,7 @@ export default function BackerDashboardPage() {
             description="Cumulative total of everything you've funded"
             className="lg:col-span-2"
           >
-            <TrendChart data={series} />
+            <TrendChart data={series} label="Your giving over time" />
           </DashboardPanel>
 
           <DashboardPanel

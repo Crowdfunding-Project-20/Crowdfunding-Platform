@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import {
   Area,
   AreaChart,
@@ -38,57 +39,83 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function TrendChart({
+export const TrendChart = memo(function TrendChart({
   data,
+  label = "Amount raised over time",
   className,
 }: {
   data: { key: string; label: string; amount: number }[];
+  /** Screen-reader label — callers should send the panel's own wording. */
+  label?: string;
   className?: string;
 }) {
   return (
-    <ChartContainer
-      config={chartConfig}
-      role="img"
-      aria-label="Amount raised over time"
-      className={className ?? "h-[240px] w-full"}
-    >
-      <AreaChart data={data} margin={{ left: 4, right: 8, top: 8, bottom: 0 }}>
-        <defs>
-          <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-amount)" stopOpacity={0.28} />
-            <stop offset="100%" stopColor="var(--color-amount)" stopOpacity={0.02} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid vertical={false} />
-        <XAxis
-          dataKey="label"
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          minTickGap={24}
-        />
-        <YAxis
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          width={56}
-          tickFormatter={(value) => formatMoney(Number(value))}
-        />
-        <ChartTooltip
-          content={
-            <ChartTooltipContent
-              formatter={(value) => formatMoney(Number(value))}
-            />
-          }
-        />
-        <Area
-          dataKey="amount"
-          type="monotone"
-          stroke="var(--color-amount)"
-          strokeWidth={2}
-          fill="url(#trend-fill)"
-        />
-      </AreaChart>
-    </ChartContainer>
+    <>
+      <ChartContainer
+        config={chartConfig}
+        role="img"
+        aria-label={label}
+        className={className ?? "h-[240px] w-full"}
+      >
+        <AreaChart data={data} margin={{ left: 4, right: 8, top: 8, bottom: 0 }}>
+          <defs>
+            <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-amount)" stopOpacity={0.28} />
+              <stop offset="100%" stopColor="var(--color-amount)" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} />
+          <XAxis
+            dataKey="label"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            minTickGap={24}
+          />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            width={56}
+            tickFormatter={(value) => formatMoney(Number(value))}
+          />
+          <ChartTooltip
+            content={
+              <ChartTooltipContent
+                formatter={(value) => formatMoney(Number(value))}
+              />
+            }
+          />
+          <Area
+            dataKey="amount"
+            type="monotone"
+            stroke="var(--color-amount)"
+            strokeWidth={2}
+            fill="url(#trend-fill)"
+          />
+        </AreaChart>
+      </ChartContainer>
+      {/* Screen readers can't read a chart image — give them the real
+          numbers as a hidden data table rather than a one-line label. */}
+      {data.length > 0 ? (
+        <table className="sr-only">
+          <caption>{label}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((point) => (
+              <tr key={point.key}>
+                <th scope="row">{point.label}</th>
+                <td>{formatMoney(point.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+    </>
   );
-}
+});
