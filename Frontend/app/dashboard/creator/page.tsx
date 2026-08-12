@@ -89,15 +89,17 @@ export default function CreatorDashboardPage() {
     return () => controller.abort();
   }, [ready, reloadKey]);
 
-  if (!ready) return <DashboardSkeleton />;
-  if (error) return <DashboardError onRetry={retry} />;
-  if (stats === null) return <DashboardSkeleton />;
-
+  // useMemo must stay above every early return — calling it after one of the
+  // returns below would change the hook count between renders (Rules of Hooks).
   const series = useMemo(
-    () => toCumulativeDailySeries(stats.recentDonations ?? []),
+    () => toCumulativeDailySeries(stats?.recentDonations ?? []),
     [stats],
   );
   const hasWithdrawable = campaigns.some((c) => (c.availableBalance ?? 0) > 0);
+
+  if (!ready) return <DashboardSkeleton />;
+  if (error) return <DashboardError onRetry={retry} />;
+  if (stats === null) return <DashboardSkeleton />;
 
   return (
     <div className="flex flex-col gap-4">
